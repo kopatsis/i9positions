@@ -65,7 +65,7 @@ func GetDynamics(database *mongo.Database, dynamics []string) (map[string]dataty
 	dynamicStr := map[string]datatypes.DynamicStr{}
 
 	collection := database.Collection("dynamicstretch")
-	filter := bson.M{"backendID": bson.M{"$in": uniqueStrSlice(dynamics)}}
+	filter := bson.M{"backendID": bson.M{"$in": UniqueStrSlice(dynamics)}}
 	cursor, err := collection.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func GetStatics(database *mongo.Database, statics []string) (map[string]datatype
 	staticStr := map[string]datatypes.StaticStr{}
 
 	collection := database.Collection("staticstretch")
-	filter := bson.M{"backendID": bson.M{"$in": uniqueStrSlice(statics)}}
+	filter := bson.M{"backendID": bson.M{"$in": UniqueStrSlice(statics)}}
 	cursor, err := collection.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func GetImageSets(database *mongo.Database, dynamicStr map[string]datatypes.Dyna
 		}
 	}
 
-	uniqueImageSets := uniqueStrSlice(allImageSets)
+	uniqueImageSets := UniqueStrSlice(allImageSets)
 
 	imageSetIDPrims := []primitive.ObjectID{}
 
@@ -174,7 +174,7 @@ func GetSamples(database *mongo.Database, dynamicStr map[string]datatypes.Dynami
 		sampleIDs = append(sampleIDs, static.SampleID)
 	}
 
-	uniqueSampleIDs := uniqueStrSlice(sampleIDs)
+	uniqueSampleIDs := UniqueStrSlice(sampleIDs)
 
 	sampleIDPrims := []primitive.ObjectID{}
 
@@ -207,7 +207,7 @@ func GetSamples(database *mongo.Database, dynamicStr map[string]datatypes.Dynami
 	return samples, nil
 }
 
-func uniqueStrSlice(sl []string) []string {
+func UniqueStrSlice(sl []string) []string {
 	ret := []string{}
 	contains := map[string]bool{}
 	for _, s := range sl {
