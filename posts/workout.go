@@ -34,17 +34,28 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 	for i, round := range WOBody.Exercises {
 		currentRound := datatypes.WORound{}
 
+		currentRound.SetCount = round.Times.Sets
+		currentRound.FullTime = round.Times.FullRound
+		currentRound.RestPerRound = round.Times.RestPerRound
+		currentRound.RestPerSet = round.Times.RestPerSet
+
 		if round.Status == "Regular" {
-
+			currentRound.SetSlice, currentRound.SetSequence = RegularRound(exercises)
 		} else if round.Status == "Combo" {
-
+			currentRound.SetSlice, currentRound.SetSequence = RegularRound(exercises) // remove
 		} else {
-
+			currentRound.SetSlice, currentRound.SetSequence = RegularRound(exercises) // remove
 		}
 
 		retExers[i] = currentRound
 	}
 	workout.Exercises = retExers
 
+	workout.BackendID = WOBody.ID.Hex()
+
 	return workout, nil
+}
+
+func RegularRound(exercises map[string]datatypes.Exercise) ([]datatypes.Set, []int) {
+	return []datatypes.Set{}, []int{}
 }

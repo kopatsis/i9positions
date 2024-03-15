@@ -80,7 +80,7 @@ func GetExercises(database *mongo.Database, exercises [9][]string) (map[string]d
 	}
 
 	collection := database.Collection("exercise")
-	filter := bson.M{"backendID": bson.M{"$in": uniqueStrSlice(sumIdList)}}
+	filter := bson.M{"backendID": bson.M{"$in": UniqueStrSlice(sumIdList)}}
 	cursor, err := collection.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func GetImageSetsWO(database *mongo.Database, dynamicStr map[string]datatypes.Dy
 		}
 	}
 
-	uniqueImageSets := uniqueStrSlice(allImageSets)
+	uniqueImageSets := UniqueStrSlice(allImageSets)
 
 	imageSetIDPrims := []primitive.ObjectID{}
 

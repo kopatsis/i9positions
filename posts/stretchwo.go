@@ -25,6 +25,8 @@ func StretchWorkout(db *mongo.Database, resolution string, strWOBody datatypes.S
 
 	retWO.RoundTime = strWOBody.StretchTimes.FullRound / 2
 
+	retWO.BackendID = strWOBody.ID.Hex()
+
 	return retWO, nil
 }
 

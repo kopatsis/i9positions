@@ -2,6 +2,7 @@ package gets
 
 import (
 	"context"
+	"i9-pos/database"
 	"i9-pos/datatypes"
 
 	"github.com/gin-gonic/gin"
@@ -11,7 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func GetSampleByID(database *mongo.Database) gin.HandlerFunc {
+func GetSampleByID(db *mongo.Database) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		idStr, exists := c.Params.Get("id")
@@ -23,7 +24,7 @@ func GetSampleByID(database *mongo.Database) gin.HandlerFunc {
 			return
 		}
 
-		sample, err := SampleByID(database, idStr)
+		sample, err := SampleByID(db, idStr)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"Error": "Issue with querying sample",
@@ -37,13 +38,13 @@ func GetSampleByID(database *mongo.Database) gin.HandlerFunc {
 	}
 }
 
-func SampleByID(database *mongo.Database, id string) (datatypes.Sample, error) {
+func SampleByID(db *mongo.Database, id string) (datatypes.Sample, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return datatypes.Sample{}, err
 	}
 
-	collection := database.Collection("sample")
+	collection := db.Collection("sample")
 
 	var result datatypes.Sample
 	err = collection.FindOne(context.TODO(), bson.M{"_id": objID}).Decode(&result)
@@ -54,26 +55,39 @@ func SampleByID(database *mongo.Database, id string) (datatypes.Sample, error) {
 	return result, nil
 }
 
-func GetSamples(database *mongo.Database) gin.HandlerFunc {
+func GetSamples(db *mongo.Database) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		samples, err := AllSamples(database)
-		if err != nil {
-			c.JSON(400, gin.H{
-				"Error": "Issue with querying samples",
-				"Exact": err.Error(),
-			})
-			return
-		}
+		if idList, ok := c.GetQueryArray("idList"); ok {
+			samples, err := GetSamplesByList(db, idList)
+			if err != nil {
+				c.JSON(400, gin.H{
+					"Error": "Issue with querying samples",
+					"Exact": err.Error(),
+				})
+				return
+			}
 
-		c.JSON(200, samples)
+			c.JSON(200, samples)
+		} else {
+			samples, err := AllSamples(db)
+			if err != nil {
+				c.JSON(400, gin.H{
+					"Error": "Issue with querying samples",
+					"Exact": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(200, samples)
+		}
 
 	}
 }
 
-func AllSamples(database *mongo.Database) ([]datatypes.Sample, error) {
+func AllSamples(db *mongo.Database) ([]datatypes.Sample, error) {
 
-	collection := database.Collection("sample")
+	collection := db.Collection("sample")
 
 	var samples []datatypes.Sample
 	cur, err := collection.Find(context.TODO(), bson.D{{}}, options.Find())
@@ -93,6 +107,42 @@ func AllSamples(database *mongo.Database) ([]datatypes.Sample, error) {
 
 	if err := cur.Err(); err != nil {
 		return nil, err
+	}
+
+	return samples, nil
+}
+
+func GetSamplesByList(db *mongo.Database, idList []string) (map[string]datatypes.Sample, error) {
+	samples := map[string]datatypes.Sample{}
+
+	uniqueSampleIDs := database.UniqueStrSlice(idList)
+
+	sampleIDPrims := []primitive.ObjectID{}
+
+	for _, id := range uniqueSampleIDs {
+		objID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return nil, err
+		}
+		sampleIDPrims = append(sampleIDPrims, objID)
+	}
+
+	collection := db.Collection("sample")
+
+	filter := bson.M{"_id": bson.M{"$in": sampleIDPrims}}
+	cursor, err := collection.Find(context.TODO(), filter)
+	if err != nil {
+		return nil, err
+	}
+
+	for cursor.Next(context.Background()) {
+		var result datatypes.Sample
+		err := cursor.Decode(&result)
+		if err != nil {
+			return nil, err
+		}
+
+		samples[result.ID.Hex()] = result
 	}
 
 	return samples, nil
