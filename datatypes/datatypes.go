@@ -91,7 +91,7 @@ type Sample struct {
 	Name        string             `bson:"name"`
 	Description string             `bson:"description"`
 	Rep         Rep                `bson:"reps"`
-	Type        string             `bson:"reps"`
+	Type        string             `bson:"type"`
 	ExOrStID    string             `bson:"exorstid"`
 }
 
