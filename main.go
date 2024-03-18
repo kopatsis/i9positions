@@ -5,9 +5,15 @@ import (
 	"i9-pos/platform"
 	"log"
 	"net/http"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+
+	if err := godotenv.Load(); err != nil {
+		log.Fatalf("Failed to load the env vars: %v", err)
+	}
 
 	client, db, err := database.ConnectDB()
 	if err != nil {

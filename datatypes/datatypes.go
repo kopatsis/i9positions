@@ -67,7 +67,7 @@ type Rep struct {
 	FullTime  float32    `bson:"fulltime"`
 }
 
-// Exists in DB as part of other entry
+// Programatically created as actual entry in DB
 type Set struct {
 	RepSlice    []Rep   `bson:"reps"`
 	RepSequence []int   `bson:"repsequence"`
@@ -75,7 +75,7 @@ type Set struct {
 	FullTime    float32 `bson:"fulltime"`
 }
 
-// Exists in DB as part of other entry
+// Programatically created as actual entry in DB
 type WORound struct {
 	SetSlice     []Set   `bson:"sets"`
 	SetSequence  []int   `bson:"setsequence"`
@@ -90,10 +90,12 @@ type Sample struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
 	Name        string             `bson:"name"`
 	Description string             `bson:"description"`
-	RepSlice    []Rep              `bson:"reps"`
+	Rep         Rep                `bson:"reps"`
+	Type        string             `bson:"reps"`
+	ExOrStID    string             `bson:"exorstid"`
 }
 
-// Exists in DB as actual entry
+// Programatically created as actual entry in DB
 type StretchWorkout struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty"`
 	BackendID    string             `bson:"backendID"`
@@ -102,7 +104,7 @@ type StretchWorkout struct {
 	RoundTime    float32            `bson:"roundtime"`
 }
 
-// Exists in DB as actual entry
+// Programatically created as actual entry in DB
 type Workout struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty"`
 	BackendID    string             `bson:"backendID"`
