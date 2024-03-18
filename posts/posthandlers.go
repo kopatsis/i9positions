@@ -34,7 +34,12 @@ func PostStretchWorkout(database *mongo.Database) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(200, stretchWO)
+		imgList := uniqueIMGsStr(stretchWO)
+
+		c.JSON(200, gin.H{
+			"workout": stretchWO,
+			"images":  imgList,
+		})
 
 	}
 }
@@ -65,7 +70,88 @@ func PostWorkout(database *mongo.Database) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(200, workout)
+		imgList := uniqueIMGsWO(workout)
+
+		c.JSON(200, gin.H{
+			"workout": workout,
+			"images":  imgList,
+		})
 
 	}
+}
+
+func uniqueIMGsStr(strWO datatypes.StretchWorkout) []string {
+	imgMap := map[string]bool{}
+	ret := []string{}
+
+	for _, set := range strWO.DynamicSlice {
+		for _, rep := range set.RepSlice {
+			for _, pos := range rep.Positions {
+				for _, img := range pos {
+					imgMap[img] = true
+				}
+			}
+		}
+	}
+
+	for _, set := range strWO.StaticSlice {
+		for _, rep := range set.RepSlice {
+			for _, pos := range rep.Positions {
+				for _, img := range pos {
+					imgMap[img] = true
+				}
+			}
+		}
+	}
+
+	for img := range imgMap {
+		ret = append(ret, img)
+	}
+
+	return ret
+
+}
+
+func uniqueIMGsWO(WO datatypes.Workout) []string {
+	imgMap := map[string]bool{}
+	ret := []string{}
+
+	for _, set := range WO.DynamicSlice {
+		for _, rep := range set.RepSlice {
+			for _, pos := range rep.Positions {
+				for _, img := range pos {
+					imgMap[img] = true
+				}
+			}
+		}
+	}
+
+	for _, set := range WO.StaticSlice {
+		for _, rep := range set.RepSlice {
+			for _, pos := range rep.Positions {
+				for _, img := range pos {
+					imgMap[img] = true
+				}
+			}
+		}
+	}
+
+	for _, round := range WO.Exercises {
+		for _, set := range round.SetSlice {
+			for _, rep := range set.RepSlice {
+				for _, pos := range rep.Positions {
+					for _, img := range pos {
+						imgMap[img] = true
+					}
+				}
+			}
+		}
+	}
+
+	for img := range imgMap {
+		ret = append(ret, img)
+	}
+
+	return ret
+
 }
