@@ -1,6 +1,7 @@
 package posts
 
 import (
+	"fmt"
 	"i9-pos/database"
 	"i9-pos/datatypes"
 	"math"
@@ -16,7 +17,7 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 		exerIDRoundList[i] = workoutRound.ExerciseIDs
 	}
 
-	dynamics, statics, imagesets, exercises, err := database.QueryWO(db, WOBody.Statics, WOBody.Dynamics, exerIDRoundList)
+	dynamics, statics, imagesets, exercises, matrix, err := database.QueryWO(db, WOBody.Statics, WOBody.Dynamics, exerIDRoundList)
 	if err != nil {
 		return datatypes.Workout{}, nil
 	}
@@ -43,7 +44,9 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 		if round.Status == "Regular" {
 			currentRound.SetSlice, currentRound.SetSequence = RegularRound(exercises, round, imagesets, resolution)
 		} else if round.Status == "Combo" {
+			fmt.Println(matrix)
 		} else {
+			fmt.Println(matrix)
 		}
 
 		retExers[i] = currentRound

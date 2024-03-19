@@ -11,12 +11,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func QueryWO(database *mongo.Database, statics, dynamics []string, exercises [9][]string) (map[string]datatypes.DynamicStr, map[string]datatypes.StaticStr, map[string]datatypes.ImageSet, map[string]datatypes.Exercise, error) {
+func QueryWO(database *mongo.Database, statics, dynamics []string, exercises [9][]string) (map[string]datatypes.DynamicStr, map[string]datatypes.StaticStr, map[string]datatypes.ImageSet, map[string]datatypes.Exercise, datatypes.TransitionMatrix, error) {
 	var wg sync.WaitGroup
 
-	errChan := make(chan error, 3)
+	errChan := make(chan error, 4)
 	var errGroup *multierror.Error
-	dynamicStr, staticStr, exerciseMap := map[string]datatypes.DynamicStr{}, map[string]datatypes.StaticStr{}, map[string]datatypes.Exercise{}
+	dynamicStr, staticStr, exerciseMap, matrix := map[string]datatypes.DynamicStr{}, map[string]datatypes.StaticStr{}, map[string]datatypes.Exercise{}, datatypes.TransitionMatrix{}
 
 	wg.Add(1)
 	go func() {
@@ -48,6 +48,16 @@ func QueryWO(database *mongo.Database, statics, dynamics []string, exercises [9]
 		}
 	}()
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var err error
+		matrix, err = GetTransitionMatrix(database)
+		if err != nil {
+			errChan <- err
+		}
+	}()
+
 	wg.Wait()
 	close(errChan)
 
@@ -60,15 +70,15 @@ func QueryWO(database *mongo.Database, statics, dynamics []string, exercises [9]
 	}
 
 	if hasErr {
-		return nil, nil, nil, nil, errGroup
+		return nil, nil, nil, nil, matrix, errGroup
 	}
 
 	imageSets, err := GetImageSetsWO(database, dynamicStr, staticStr, exerciseMap)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, matrix, err
 	}
 
-	return dynamicStr, staticStr, imageSets, exerciseMap, nil
+	return dynamicStr, staticStr, imageSets, exerciseMap, matrix, nil
 }
 
 func GetExercises(database *mongo.Database, exercises [9][]string) (map[string]datatypes.Exercise, error) {
@@ -97,6 +107,18 @@ func GetExercises(database *mongo.Database, exercises [9][]string) (map[string]d
 	}
 
 	return exerciseMap, nil
+}
+
+func GetTransitionMatrix(database *mongo.Database) (datatypes.TransitionMatrix, error) {
+	matrix := datatypes.TransitionMatrix{}
+
+	collection := database.Collection("transition")
+	err := collection.FindOne(context.TODO(), bson.M{}).Decode(&matrix)
+	if err != nil {
+		return matrix, err
+	}
+
+	return matrix, nil
 }
 
 func GetImageSetsWO(database *mongo.Database, dynamicStr map[string]datatypes.DynamicStr, staticStr map[string]datatypes.StaticStr, exerciseMap map[string]datatypes.Exercise) (map[string]datatypes.ImageSet, error) {
