@@ -1,7 +1,6 @@
 package posts
 
 import (
-	"fmt"
 	"i9-pos/database"
 	"i9-pos/datatypes"
 	"math"
@@ -44,9 +43,9 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 		if round.Status == "Regular" {
 			currentRound.SetSlice, currentRound.SetSequence = RegularRound(exercises, round, imagesets, resolution)
 		} else if round.Status == "Combo" {
-			fmt.Println(matrix)
+			currentRound.SetSlice, currentRound.SetSequence = ComboRound(exercises, round, imagesets, resolution, matrix)
 		} else {
-			fmt.Println(matrix)
+			currentRound.SetSlice, currentRound.SetSequence = SplitRound(exercises, round, imagesets, resolution, matrix)
 		}
 
 		retExers[i] = currentRound
@@ -203,6 +202,121 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 	}
 
 	return setSlice, setSequence
+
+}
+
+func SplitRound(exercises map[string]datatypes.Exercise, round datatypes.WorkoutRound, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix) ([]datatypes.Set, []int) {
+
+	setSlice, setSequence := []datatypes.Set{}, []int{}
+
+	displayReps := customRound(round.Reps[0])
+	if !(math.Mod(float64(displayReps), 1) > 0.4) {
+
+		set := splitSet(exercises[round.ExerciseIDs[0]], exercises[round.ExerciseIDs[1]], round.Times.ExercisePerSet, imagesets, resolution, matrix, displayReps)
+
+		setSlice = append(setSlice, set)
+
+		for i := 0; i < round.Times.Sets; i++ {
+			setSequence = append(setSequence, 0)
+		}
+
+	} else {
+
+		repCount1 := float32(math.Floor(float64(displayReps)))
+		repCount2 := repCount1 + 1
+
+		set1 := splitSet(exercises[round.ExerciseIDs[0]], exercises[round.ExerciseIDs[1]], round.Times.ExercisePerSet, imagesets, resolution, matrix, repCount1)
+		set2 := splitSet(exercises[round.ExerciseIDs[0]], exercises[round.ExerciseIDs[1]], round.Times.ExercisePerSet, imagesets, resolution, matrix, repCount2)
+
+		setSlice = []datatypes.Set{set1, set2}
+
+		for i := 0; i < round.Times.Sets; i++ {
+			if i%2 == 0 {
+				setSequence = append(setSequence, 0)
+			} else {
+				setSequence = append(setSequence, 1)
+			}
+
+		}
+	}
+
+	return setSlice, setSequence
+}
+
+func splitSet(exer1, exer2 datatypes.Exercise, exercisePerSet float32, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix, displayReps float32) datatypes.Set {
+	timeGigaRep := exercisePerSet / displayReps
+
+	trans1, trans2 := getSingleTransition(exer1, exer2, matrix, ""), getSingleTransition(exer2, exer1, matrix, "")
+
+	sumTime := trans1.FullTime + trans2.FullTime
+
+	sumTime += (exer1.MaxSecs + exer1.MinSecs) / 2
+	if len(exer1.PositionSlice2) != 0 {
+		sumTime += (exer1.MaxSecs + exer1.MinSecs) / 2
+	}
+
+	sumTime += (exer2.MaxSecs + exer2.MinSecs) / 2
+	if len(exer2.PositionSlice2) != 0 {
+		sumTime += (exer2.MaxSecs + exer2.MinSecs) / 2
+	}
+
+	transRep1, transRep2 := datatypes.Rep{}, datatypes.Rep{}
+
+	if timeGigaRep >= 1.05*sumTime {
+		transRep1 = transitionRepToRep(getSingleTransition(exer1, exer2, matrix, "Slow"), imagesets, resolution)
+		transRep2 = transitionRepToRep(getSingleTransition(exer2, exer2, matrix, "Slow"), imagesets, resolution)
+	} else if timeGigaRep <= .95*sumTime {
+		transRep1 = transitionRepToRep(getSingleTransition(exer1, exer2, matrix, "Fast"), imagesets, resolution)
+		transRep2 = transitionRepToRep(getSingleTransition(exer2, exer2, matrix, "Fast"), imagesets, resolution)
+	} else {
+		transRep1 = transitionRepToRep(trans1, imagesets, resolution)
+		transRep2 = transitionRepToRep(trans2, imagesets, resolution)
+	}
+
+	justExerTime := timeGigaRep - transRep1.FullTime - transRep2.FullTime
+	sumTime -= (trans1.FullTime + trans2.FullTime)
+
+	exer1defaultTime := (exer1.MaxSecs + exer1.MinSecs) / 2
+	if len(exer1.PositionSlice2) != 0 {
+		exer1defaultTime += (exer1.MaxSecs + exer1.MinSecs) / 2
+	}
+
+	exer2defaultTime := (exer2.MaxSecs + exer2.MinSecs) / 2
+	if len(exer2.PositionSlice2) != 0 {
+		exer2defaultTime += (exer2.MaxSecs + exer2.MinSecs) / 2
+	}
+
+	exer1RealTime := (exer1defaultTime / sumTime) * justExerTime
+	exer2RealTime := (exer2defaultTime / sumTime) * justExerTime
+
+	exer1Rep := exerToRep(exer1, exer1RealTime, imagesets, resolution, false)
+	if len(exer1.PositionSlice2) != 0 {
+		exer1Rep = combineReps(exer1Rep, exerToRep(exer1, exer1RealTime, imagesets, resolution, true))
+	}
+
+	exer2Rep := exerToRep(exer2, exer2RealTime, imagesets, resolution, false)
+	if len(exer2.PositionSlice2) != 0 {
+		exer2Rep = combineReps(exer2Rep, exerToRep(exer2, exer2RealTime, imagesets, resolution, true))
+	}
+
+	exer1WTrans := combineReps(exer1Rep, transRep1)
+	exer2WTrans := combineReps(exer2Rep, transRep2)
+
+	gigaRep := combineReps(exer1WTrans, exer2WTrans)
+
+	set := datatypes.Set{
+		RepSlice:    []datatypes.Rep{gigaRep},
+		RepCount:    int(displayReps),
+		RepSequence: []int{},
+		FullTime:    0,
+	}
+
+	for i := 0; i < set.RepCount; i++ {
+		set.RepSequence = append(set.RepSequence, 0)
+		set.FullTime += gigaRep.FullTime
+	}
+
+	return set
 
 }
 
@@ -387,6 +501,14 @@ func combineSets(sets []datatypes.Set, transitions []datatypes.Rep) datatypes.Se
 	return ret
 }
 
+func combineReps(rep1 datatypes.Rep, rep2 datatypes.Rep) datatypes.Rep {
+	return datatypes.Rep{
+		Positions: append(rep1.Positions, rep2.Positions...),
+		Times:     append(rep1.Times, rep2.Times...),
+		FullTime:  rep1.FullTime + rep2.FullTime,
+	}
+}
+
 func customRound(num float32) float32 {
 	whole, decimal := math.Modf(float64(num))
 	if decimal < 0.35 {
@@ -396,6 +518,128 @@ func customRound(num float32) float32 {
 	} else {
 		return float32(whole + 0.5)
 	}
+}
+
+func exerToRep(exer datatypes.Exercise, initRepTime float32, imagesets map[string]datatypes.ImageSet, resolution string, alternate bool) datatypes.Rep {
+	rep := datatypes.Rep{}
+	positions, times := [][]string{}, []float32{}
+	calcTime := float32(math.Max(float64(initRepTime), float64(exer.MinSecs)))
+
+	if !alternate {
+		for _, position := range exer.PositionSlice1 {
+			if position.Hardcoded {
+				calcTime -= position.HardcodedSecs
+			}
+		}
+
+		for _, position := range exer.PositionSlice1 {
+			if position.Hardcoded {
+				times = append(times, position.HardcodedSecs)
+			} else {
+				times = append(times, calcTime*position.PercentSecs)
+			}
+			switch resolution {
+			case "Low":
+				positions = append(positions, imagesets[position.ImageSetID].Low)
+			case "Mid":
+				positions = append(positions, imagesets[position.ImageSetID].Mid)
+			case "High":
+				positions = append(positions, imagesets[position.ImageSetID].High)
+			default:
+				positions = append(positions, imagesets[position.ImageSetID].Original)
+			}
+		}
+	} else {
+		for _, position := range exer.PositionSlice2 {
+			if position.Hardcoded {
+				calcTime -= position.HardcodedSecs
+			}
+		}
+
+		for _, position := range exer.PositionSlice2 {
+			if position.Hardcoded {
+				times = append(times, position.HardcodedSecs)
+			} else {
+				times = append(times, calcTime*position.PercentSecs)
+			}
+			switch resolution {
+			case "Low":
+				positions = append(positions, imagesets[position.ImageSetID].Low)
+			case "Mid":
+				positions = append(positions, imagesets[position.ImageSetID].Mid)
+			case "High":
+				positions = append(positions, imagesets[position.ImageSetID].High)
+			default:
+				positions = append(positions, imagesets[position.ImageSetID].Original)
+			}
+		}
+	}
+
+	if exer.MinSecs > initRepTime {
+		for i, time := range times {
+			times[i] = time * (initRepTime / exer.MinSecs)
+		}
+	}
+
+	rep.Positions = positions
+	rep.Times = times
+	rep.FullTime = initRepTime
+
+	return rep
+}
+
+func getSingleTransition(exer1, exer2 datatypes.Exercise, matrix datatypes.TransitionMatrix, speed string) datatypes.TransitionRep {
+	parentMatIndex := map[string]int{
+		"Pushups":           0,
+		"Squats":            1,
+		"Burpees":           2,
+		"Jumps":             3,
+		"Lunges":            4,
+		"Mountain Climbers": 5,
+		"Abs":               6,
+		"Bridges":           7,
+		"Kicks":             8,
+		"Planks":            9,
+		"Supermans":         10,
+	}
+
+	switch speed {
+	case "Slow":
+		return matrix.SlowMatrix[parentMatIndex[exer1.Parent]][parentMatIndex[exer2.Parent]]
+	case "Fast":
+		return matrix.FastMatrix[parentMatIndex[exer1.Parent]][parentMatIndex[exer2.Parent]]
+	default:
+		return matrix.RegularMatrix[parentMatIndex[exer1.Parent]][parentMatIndex[exer2.Parent]]
+	}
+}
+
+func transitionRepToRep(transition datatypes.TransitionRep, imagesets map[string]datatypes.ImageSet, resolution string) datatypes.Rep {
+	rep := datatypes.Rep{
+		FullTime:  transition.FullTime,
+		Times:     transition.Times,
+		Positions: [][]string{},
+	}
+
+	switch resolution {
+	case "Low":
+		for _, id := range transition.ImageSetIDs {
+			rep.Positions = append(rep.Positions, imagesets[id].Low)
+		}
+	case "Mid":
+		for _, id := range transition.ImageSetIDs {
+			rep.Positions = append(rep.Positions, imagesets[id].Mid)
+		}
+	case "High":
+		for _, id := range transition.ImageSetIDs {
+			rep.Positions = append(rep.Positions, imagesets[id].High)
+		}
+	default:
+		for _, id := range transition.ImageSetIDs {
+			rep.Positions = append(rep.Positions, imagesets[id].Original)
+		}
+	}
+
+	return rep
 }
 
 func getTransitions(exercises map[string]datatypes.Exercise, round datatypes.WorkoutRound, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix) ([]datatypes.Rep, float32) {
