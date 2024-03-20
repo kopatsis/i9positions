@@ -32,6 +32,7 @@ type Exercise struct {
 	ID             primitive.ObjectID `bson:"_id,omitempty"`
 	BackendID      string             `bson:"backendID"`
 	Name           string             `bson:"name"`
+	Parent         string             `bson:"name"`
 	MaxSecs        float32            `bson:"maxsecs"`
 	MinSecs        float32            `bson:"minsecs"`
 	PositionSlice1 []ExerPosition     `bson:"positions1"`
