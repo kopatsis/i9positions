@@ -35,6 +35,7 @@ type Exercise struct {
 	Parent         string             `bson:"name"`
 	MaxSecs        float32            `bson:"maxsecs"`
 	MinSecs        float32            `bson:"minsecs"`
+	ImageSetID0    string             `bson:"imageset0"`
 	PositionSlice1 []ExerPosition     `bson:"positions1"`
 	PositionSlice2 []ExerPosition     `bson:"positions2"`
 	SampleID       string             `bson:"sampleid"`
@@ -70,20 +71,22 @@ type Rep struct {
 
 // Programatically created as actual entry in DB
 type Set struct {
-	RepSlice    []Rep   `bson:"reps"`
-	RepSequence []int   `bson:"repsequence"`
-	RepCount    int     `bson:"repcount"`
-	FullTime    float32 `bson:"fulltime"`
+	RepSlice     []Rep    `bson:"reps"`
+	RepSequence  []int    `bson:"repsequence"`
+	RepCount     int      `bson:"repcount"`
+	PositionInit []string `bson:"positioninit"`
+	FullTime     float32  `bson:"fulltime"`
 }
 
 // Programatically created as actual entry in DB
 type WORound struct {
-	SetSlice     []Set   `bson:"sets"`
-	SetSequence  []int   `bson:"setsequence"`
-	SetCount     int     `bson:"setcount"`
-	FullTime     float32 `bson:"fulltime"`
-	RestPerRound float32 `bson:"restround"`
-	RestPerSet   float32 `bson:"restset"`
+	SetSlice     []Set    `bson:"sets"`
+	SetSequence  []int    `bson:"setsequence"`
+	SetCount     int      `bson:"setcount"`
+	FullTime     float32  `bson:"fulltime"`
+	RestPerRound float32  `bson:"restround"`
+	RestPerSet   float32  `bson:"restset"`
+	RestPosition []string `bson:"restposition"`
 }
 
 // Exists in DB as actual entry
@@ -98,23 +101,25 @@ type Sample struct {
 
 // Programatically created as actual entry in DB
 type StretchWorkout struct {
-	ID           primitive.ObjectID `bson:"_id,omitempty"`
-	BackendID    string             `bson:"backendID"`
-	DynamicSlice []Set              `bson:"dynamics"`
-	StaticSlice  []Set              `bson:"statics"`
-	RoundTime    float32            `bson:"roundtime"`
+	ID               primitive.ObjectID `bson:"_id,omitempty"`
+	BackendID        string             `bson:"backendID"`
+	DynamicSlice     []Set              `bson:"dynamics"`
+	StaticSlice      []Set              `bson:"statics"`
+	CongratsPosition []string           `bson:"congratspos"`
+	RoundTime        float32            `bson:"roundtime"`
 }
 
 // Programatically created as actual entry in DB
 type Workout struct {
-	ID           primitive.ObjectID `bson:"_id,omitempty"`
-	BackendID    string             `bson:"backendID"`
-	DynamicSlice []Set              `bson:"dynamics"`
-	StaticSlice  []Set              `bson:"statics"`
-	StaticTime   float32            `bson:"statictime"`
-	DynamicTime  float32            `bson:"dynamictime"`
-	DynamicRest  float32            `bson:"dynamicrest"`
-	Exercises    [9]WORound         `bson:"exercises"`
+	ID               primitive.ObjectID `bson:"_id,omitempty"`
+	BackendID        string             `bson:"backendID"`
+	DynamicSlice     []Set              `bson:"dynamics"`
+	StaticSlice      []Set              `bson:"statics"`
+	StaticTime       float32            `bson:"statictime"`
+	DynamicTime      float32            `bson:"dynamictime"`
+	DynamicRest      float32            `bson:"dynamicrest"`
+	CongratsPosition []string           `bson:"congratspos"`
+	Exercises        [9]WORound         `bson:"exercises"`
 }
 
 type TransitionRep struct {
