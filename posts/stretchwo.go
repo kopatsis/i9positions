@@ -26,7 +26,7 @@ func StretchWorkout(db *mongo.Database, resolution string, strWOBody datatypes.S
 
 	retWO.RoundTime = strWOBody.StretchTimes.FullRound / 2
 
-	retWO.CongratsPosition = getCongrats(imagesets, resolution)
+	retWO.CongratsPosition = getSpecific(imagesets, resolution, "congrats")
 
 	retWO.BackendID = strWOBody.ID.Hex()
 
@@ -203,9 +203,9 @@ func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string,
 	return dynamicSets
 }
 
-func getCongrats(imagesets map[string]datatypes.ImageSet, resolution string) []string {
+func getSpecific(imagesets map[string]datatypes.ImageSet, resolution, includes string) []string {
 	for _, imageset := range imagesets {
-		if strings.Contains(strings.ToLower(imageset.Name), "congrat") {
+		if strings.Contains(strings.ToLower(imageset.Name), strings.ToLower(includes)) {
 			switch resolution {
 			case "Low":
 				return imageset.Low

@@ -48,11 +48,13 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 			currentRound.SetSlice, currentRound.SetSequence = SplitRound(exercises, round, imagesets, resolution, matrix)
 		}
 
+		currentRound.RestPosition = getSpecific(imagesets, resolution, "resting")
+
 		retExers[i] = currentRound
 	}
 	workout.Exercises = retExers
 
-	workout.CongratsPosition = getCongrats(imagesets, resolution)
+	workout.CongratsPosition = getSpecific(imagesets, resolution, "congrats")
 
 	workout.BackendID = WOBody.ID.Hex()
 
@@ -161,6 +163,9 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 
 		set := combineSets(setsToCombine, transitions)
 
+		set.PositionInit = getInitImageSet(exercises[round.ExerciseIDs[0]], imagesets, resolution)
+		set.PositionInit = getInitImageSet(exercises[round.ExerciseIDs[len(round.ExerciseIDs)-1]], imagesets, resolution)
+
 		setSlice = append(setSlice, set)
 
 		for i := 0; i < round.Times.Sets; i++ {
@@ -190,6 +195,12 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 		}
 
 		set1, set2 := combineSets(setsToCombine1, transitions), combineSets(setsToCombine2, transitions)
+
+		set1.PositionInit = getInitImageSet(exercises[round.ExerciseIDs[0]], imagesets, resolution)
+		set1.PositionInit = getInitImageSet(exercises[round.ExerciseIDs[len(round.ExerciseIDs)-1]], imagesets, resolution)
+
+		set2.PositionInit = getInitImageSet(exercises[round.ExerciseIDs[0]], imagesets, resolution)
+		set2.PositionInit = getInitImageSet(exercises[round.ExerciseIDs[len(round.ExerciseIDs)-1]], imagesets, resolution)
 
 		setSlice = []datatypes.Set{set1, set2}
 
@@ -318,6 +329,9 @@ func splitSet(exer1, exer2 datatypes.Exercise, exercisePerSet float32, imagesets
 		set.FullTime += gigaRep.FullTime
 	}
 
+	set.PositionInit = getInitImageSet(exer1, imagesets, resolution)
+	set.PositionEnd = getInitImageSet(exer2, imagesets, resolution)
+
 	return set
 
 }
@@ -374,6 +388,9 @@ func SingleRepSet(exer datatypes.Exercise, displayReps float32, exercisePerSet f
 	}
 
 	set.FullTime = totalTime
+
+	set.PositionInit = getInitImageSet(exer, imagesets, resolution)
+	set.PositionEnd = getInitImageSet(exer, imagesets, resolution)
 
 	return set
 }
@@ -473,6 +490,9 @@ func AlternatingRepSet(exer datatypes.Exercise, displayReps float32, exercisePer
 
 	}
 	set.FullTime = totalTime
+
+	set.PositionInit = getInitImageSet(exer, imagesets, resolution)
+	set.PositionEnd = getInitImageSet(exer, imagesets, resolution)
 
 	return set
 }
@@ -693,4 +713,17 @@ func getTransitions(exercises map[string]datatypes.Exercise, round datatypes.Wor
 	}
 
 	return transitions, workingTime
+}
+
+func getInitImageSet(exer datatypes.Exercise, imagesets map[string]datatypes.ImageSet, resolution string) []string {
+	switch resolution {
+	case "Low":
+		return imagesets[exer.ImageSetID0].Low
+	case "Mid":
+		return imagesets[exer.ImageSetID0].Mid
+	case "High":
+		return imagesets[exer.ImageSetID0].High
+	default:
+		return imagesets[exer.ImageSetID0].Original
+	}
 }
