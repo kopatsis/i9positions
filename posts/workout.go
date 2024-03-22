@@ -21,11 +21,15 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 		return datatypes.Workout{}, nil
 	}
 
-	dynamicSets := DynamicSets(dynamics, WOBody.Dynamics, WOBody.StretchTimes, resolution, imagesets)
+	dynamicSets, dynamicNames, dynamicSamples := DynamicSets(dynamics, WOBody.Dynamics, WOBody.StretchTimes, resolution, imagesets)
 	workout.DynamicSlice = dynamicSets
+	workout.DynamicNames = dynamicNames
+	workout.DynamicSamples = dynamicSamples
 
-	staticSets := StaticSets(statics, WOBody.Statics, WOBody.StretchTimes, resolution, imagesets)
+	staticSets, staticNames, staticSamples := StaticSets(statics, WOBody.Statics, WOBody.StretchTimes, resolution, imagesets)
 	workout.StaticSlice = staticSets
+	workout.StaticNames = staticNames
+	workout.StaticSamples = staticSamples
 
 	workout.DynamicRest = WOBody.StretchTimes.DynamicRest
 	workout.DynamicTime = WOBody.StretchTimes.FullRound

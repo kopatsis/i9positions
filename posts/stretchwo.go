@@ -18,11 +18,15 @@ func StretchWorkout(db *mongo.Database, resolution string, strWOBody datatypes.S
 		return datatypes.StretchWorkout{}, nil
 	}
 
-	dynamicSets := DynamicSets(dynamics, strWOBody.Dynamics, strWOBody.StretchTimes, resolution, imagesets)
+	dynamicSets, dynamicNames, dynamicSamples := DynamicSets(dynamics, strWOBody.Dynamics, strWOBody.StretchTimes, resolution, imagesets)
 	retWO.DynamicSlice = dynamicSets
+	retWO.DynamicNames = dynamicNames
+	retWO.StaticSamples = dynamicSamples
 
-	staticSets := StaticSets(statics, strWOBody.Statics, strWOBody.StretchTimes, resolution, imagesets)
+	staticSets, staticNames, staticSamples := StaticSets(statics, strWOBody.Statics, strWOBody.StretchTimes, resolution, imagesets)
 	retWO.StaticSlice = staticSets
+	retWO.StaticNames = staticNames
+	retWO.StaticSamples = staticSamples
 
 	retWO.RoundTime = strWOBody.StretchTimes.FullRound / 2
 
@@ -33,8 +37,10 @@ func StretchWorkout(db *mongo.Database, resolution string, strWOBody datatypes.S
 	return retWO, nil
 }
 
-func StaticSets(statics map[string]datatypes.StaticStr, staticList []string, stretchTimes datatypes.StretchTimes, resolution string, imagesets map[string]datatypes.ImageSet) []datatypes.Set {
+func StaticSets(statics map[string]datatypes.StaticStr, staticList []string, stretchTimes datatypes.StretchTimes, resolution string, imagesets map[string]datatypes.ImageSet) ([]datatypes.Set, []string, []string) {
 	staticSets := []datatypes.Set{}
+	staticNames := []string{}
+	staticSamples := []string{}
 
 	for i, id := range staticList {
 		static, set := statics[id], datatypes.Set{}
@@ -88,14 +94,18 @@ func StaticSets(statics map[string]datatypes.StaticStr, staticList []string, str
 		}
 
 		staticSets = append(staticSets, set)
+		staticNames = append(staticNames, static.Name)
+		staticSamples = append(staticSamples, static.SampleID)
 
 	}
 
-	return staticSets
+	return staticSets, staticNames, staticSamples
 }
 
-func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string, stretchTimes datatypes.StretchTimes, resolution string, imagesets map[string]datatypes.ImageSet) []datatypes.Set {
+func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string, stretchTimes datatypes.StretchTimes, resolution string, imagesets map[string]datatypes.ImageSet) ([]datatypes.Set, []string, []string) {
 	dynamicSets := []datatypes.Set{}
+	dynamicNames := []string{}
+	dynamicSamples := []string{}
 
 	for i, id := range dynamicList {
 		dynamic, set := dynamics[id], datatypes.Set{}
@@ -197,10 +207,12 @@ func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string,
 		}
 
 		dynamicSets = append(dynamicSets, set)
+		dynamicNames = append(dynamicNames, dynamic.Name)
+		dynamicSamples = append(dynamicSamples, dynamic.SampleID)
 
 	}
 
-	return dynamicSets
+	return dynamicSets, dynamicNames, dynamicSamples
 }
 
 func getSpecific(imagesets map[string]datatypes.ImageSet, resolution, includes string) []string {

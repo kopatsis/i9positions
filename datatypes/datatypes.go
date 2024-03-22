@@ -87,6 +87,10 @@ type WORound struct {
 	FullTime     float32  `bson:"fulltime"`
 	RestPerRound float32  `bson:"restround"`
 	RestPerSet   float32  `bson:"restset"`
+	Type         string   `bson:"type"`
+	Names        []string `bson:"names"`
+	Reps         []int    `bson:"reps"`
+	SampleIDs    []string `bson:"samples"`
 	RestPosition []string `bson:"restposition"`
 }
 
@@ -106,6 +110,10 @@ type StretchWorkout struct {
 	BackendID        string             `bson:"backendID"`
 	DynamicSlice     []Set              `bson:"dynamics"`
 	StaticSlice      []Set              `bson:"statics"`
+	DynamicNames     []string           `bson:"dynamicnames"`
+	StaticNames      []string           `bson:"staticnames"`
+	DynamicSamples   []string           `bson:"dynamicsamples"`
+	StaticSamples    []string           `bson:"staticsamples"`
 	CongratsPosition []string           `bson:"congratspos"`
 	RoundTime        float32            `bson:"roundtime"`
 }
@@ -119,6 +127,10 @@ type Workout struct {
 	StaticTime       float32            `bson:"statictime"`
 	DynamicTime      float32            `bson:"dynamictime"`
 	DynamicRest      float32            `bson:"dynamicrest"`
+	DynamicNames     []string           `bson:"dynamicnames"`
+	StaticNames      []string           `bson:"staticnames"`
+	DynamicSamples   []string           `bson:"dynamicsamples"`
+	StaticSamples    []string           `bson:"staticsamples"`
 	CongratsPosition []string           `bson:"congratspos"`
 	Exercises        [9]WORound         `bson:"exercises"`
 }
