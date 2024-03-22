@@ -37,7 +37,16 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 
 	retExers := [9]datatypes.WORound{}
 	for i, round := range WOBody.Exercises {
-		currentRound := datatypes.WORound{}
+		currentRound := datatypes.WORound{
+			Names:     []string{},
+			SampleIDs: []string{},
+		}
+
+		currentRound.Type = round.Status
+		for _, id := range round.ExerciseIDs {
+			currentRound.Names = append(currentRound.Names, exercises[id].Name)
+			currentRound.SampleIDs = append(currentRound.Names, exercises[id].SampleID)
+		}
 
 		currentRound.SetCount = round.Times.Sets
 		currentRound.FullTime = round.Times.FullRound
@@ -45,11 +54,11 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 		currentRound.RestPerSet = round.Times.RestPerSet
 
 		if round.Status == "Regular" {
-			currentRound.SetSlice, currentRound.SetSequence = RegularRound(exercises, round, imagesets, resolution)
+			currentRound.SetSlice, currentRound.SetSequence, currentRound.Reps = RegularRound(exercises, round, imagesets, resolution)
 		} else if round.Status == "Combo" {
-			currentRound.SetSlice, currentRound.SetSequence = ComboRound(exercises, round, imagesets, resolution, matrix)
+			currentRound.SetSlice, currentRound.SetSequence, currentRound.Reps = ComboRound(exercises, round, imagesets, resolution, matrix)
 		} else {
-			currentRound.SetSlice, currentRound.SetSequence = SplitRound(exercises, round, imagesets, resolution, matrix)
+			currentRound.SetSlice, currentRound.SetSequence, currentRound.Reps = SplitRound(exercises, round, imagesets, resolution, matrix)
 		}
 
 		currentRound.RestPosition = getSpecific(imagesets, resolution, "resting")
@@ -65,9 +74,9 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 	return workout, nil
 }
 
-func RegularRound(exercises map[string]datatypes.Exercise, round datatypes.WorkoutRound, imagesets map[string]datatypes.ImageSet, resolution string) ([]datatypes.Set, []int) {
+func RegularRound(exercises map[string]datatypes.Exercise, round datatypes.WorkoutRound, imagesets map[string]datatypes.ImageSet, resolution string) ([]datatypes.Set, []int, []int) {
 
-	setSlice, setSequence := []datatypes.Set{}, []int{}
+	setSlice, setSequence, roundReps := []datatypes.Set{}, []int{}, []int{}
 
 	exer := exercises[round.ExerciseIDs[0]]
 
@@ -82,6 +91,8 @@ func RegularRound(exercises map[string]datatypes.Exercise, round datatypes.Worko
 			for i := 0; i < round.Times.Sets; i++ {
 				setSequence = append(setSequence, 0)
 			}
+
+			roundReps = append(roundReps, int(displayReps))
 
 		} else {
 
@@ -101,6 +112,9 @@ func RegularRound(exercises map[string]datatypes.Exercise, round datatypes.Worko
 				}
 
 			}
+
+			roundReps = append(roundReps, int(repCount1))
+			roundReps = append(roundReps, int(repCount2))
 		}
 	} else {
 		displayReps := float32(math.Round(float64(round.Reps[0])))
@@ -132,14 +146,16 @@ func RegularRound(exercises map[string]datatypes.Exercise, round datatypes.Worko
 			}
 
 		}
+
+		roundReps = append(roundReps, int(displayReps))
 	}
 
-	return setSlice, setSequence
+	return setSlice, setSequence, roundReps
 }
 
-func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.WorkoutRound, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix) ([]datatypes.Set, []int) {
+func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.WorkoutRound, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix) ([]datatypes.Set, []int, []int) {
 
-	setSlice, setSequence := []datatypes.Set{}, []int{}
+	setSlice, setSequence, roundReps := []datatypes.Set{}, []int{}, []int{}
 
 	hasDoubles := false
 
@@ -159,6 +175,8 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 
 		for i, exID := range round.ExerciseIDs {
 			displayReps := float32(math.Round(float64(perExerTime/round.Reps[i]))) * remainder
+
+			roundReps = append(roundReps, int(displayReps))
 
 			remainder = 1 + ((round.Reps[i])-displayReps)/(round.Reps[i])
 
@@ -186,6 +204,8 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 
 		for i, exID := range round.ExerciseIDs {
 			displayReps := float32(math.Round(float64(perExerTime/round.Reps[i]))) * remainder
+
+			roundReps = append(roundReps, int(displayReps))
 
 			remainder = 1 + ((round.Reps[i])-displayReps)/(round.Reps[i])
 
@@ -218,13 +238,13 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 		}
 	}
 
-	return setSlice, setSequence
+	return setSlice, setSequence, roundReps
 
 }
 
-func SplitRound(exercises map[string]datatypes.Exercise, round datatypes.WorkoutRound, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix) ([]datatypes.Set, []int) {
+func SplitRound(exercises map[string]datatypes.Exercise, round datatypes.WorkoutRound, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix) ([]datatypes.Set, []int, []int) {
 
-	setSlice, setSequence := []datatypes.Set{}, []int{}
+	setSlice, setSequence, roundReps := []datatypes.Set{}, []int{}, []int{}
 
 	displayReps := customRound(round.Reps[0])
 	if !(math.Mod(float64(displayReps), 1) > 0.4) {
@@ -236,6 +256,8 @@ func SplitRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 		for i := 0; i < round.Times.Sets; i++ {
 			setSequence = append(setSequence, 0)
 		}
+
+		roundReps = append(roundReps, int(displayReps))
 
 	} else {
 
@@ -255,9 +277,12 @@ func SplitRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 			}
 
 		}
+
+		roundReps = append(roundReps, int(repCount1))
+		roundReps = append(roundReps, int(repCount2))
 	}
 
-	return setSlice, setSequence
+	return setSlice, setSequence, roundReps
 }
 
 func splitSet(exer1, exer2 datatypes.Exercise, exercisePerSet float32, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix, displayReps float32) datatypes.Set {
