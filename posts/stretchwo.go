@@ -4,6 +4,7 @@ import (
 	"i9-pos/database"
 	"i9-pos/datatypes"
 	"math"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -24,6 +25,8 @@ func StretchWorkout(db *mongo.Database, resolution string, strWOBody datatypes.S
 	retWO.StaticSlice = staticSets
 
 	retWO.RoundTime = strWOBody.StretchTimes.FullRound / 2
+
+	retWO.CongratsPosition = getCongrats(imagesets, resolution)
 
 	retWO.BackendID = strWOBody.ID.Hex()
 
@@ -198,4 +201,22 @@ func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string,
 	}
 
 	return dynamicSets
+}
+
+func getCongrats(imagesets map[string]datatypes.ImageSet, resolution string) []string {
+	for _, imageset := range imagesets {
+		if strings.Contains(strings.ToLower(imageset.Name), "congrat") {
+			switch resolution {
+			case "Low":
+				return imageset.Low
+			case "Mid":
+				return imageset.Mid
+			case "High":
+				return imageset.High
+			default:
+				return imageset.Original
+			}
+		}
+	}
+	return []string{}
 }

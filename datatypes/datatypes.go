@@ -75,6 +75,7 @@ type Set struct {
 	RepSequence  []int    `bson:"repsequence"`
 	RepCount     int      `bson:"repcount"`
 	PositionInit []string `bson:"positioninit"`
+	PositionEnd  []string `bson:"positionend"`
 	FullTime     float32  `bson:"fulltime"`
 }
 

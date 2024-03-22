@@ -52,6 +52,8 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 	}
 	workout.Exercises = retExers
 
+	workout.CongratsPosition = getCongrats(imagesets, resolution)
+
 	workout.BackendID = WOBody.ID.Hex()
 
 	return workout, nil
