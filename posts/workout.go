@@ -247,7 +247,7 @@ func SplitRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 	setSlice, setSequence, roundReps := []datatypes.Set{}, []int{}, []int{}
 
 	displayReps := customRound(round.Reps[0])
-	if !(math.Mod(float64(displayReps), 1) > 0.4) {
+	if !(math.Mod(float64(displayReps), 1) > 0.4) { // May need to figure a different rounder lol
 
 		set := splitSet(exercises[round.ExerciseIDs[0]], exercises[round.ExerciseIDs[1]], round.Times.ExercisePerSet, imagesets, resolution, matrix, displayReps)
 

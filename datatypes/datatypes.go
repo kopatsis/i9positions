@@ -47,6 +47,7 @@ type DynamicStr struct {
 	BackendID      string             `bson:"backendID"`
 	Name           string             `bson:"name"`
 	Secs           float32            `bson:"secs"`
+	SeparateSets   bool               `bson:"separate"`
 	PositionSlice1 []StrPosition      `bson:"positions1"`
 	PositionSlice2 []StrPosition      `bson:"positions2"`
 	SampleID       string             `bson:"sampleid"`

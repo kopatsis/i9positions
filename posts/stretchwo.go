@@ -147,7 +147,14 @@ func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string,
 		} else {
 
 			setTime := stretchTimes.DynamicPerSet[i]
-			repCount := int(math.RoundToEven(float64(setTime) / float64(dynamic.Secs)))
+
+			var repCount int
+			if dynamic.SeparateSets {
+				repCount = int(math.RoundToEven(float64(setTime) / float64(dynamic.Secs)))
+			} else {
+				repCount = int(math.Round(float64(setTime) / float64(dynamic.Secs)))
+			}
+
 			realRepTime := setTime / float32(repCount)
 
 			rep1, rep2 := datatypes.Rep{}, datatypes.Rep{}
@@ -196,14 +203,27 @@ func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string,
 			set.RepSlice = []datatypes.Rep{rep1, rep2}
 			set.RepCount = repCount
 			set.RepSequence = []int{}
-			for i := 0; i < repCount; i++ {
-				if i%2 == 0 {
-					set.RepSequence = append(set.RepSequence, 0)
-				} else {
-					set.RepSequence = append(set.RepSequence, 1)
-				}
 
+			if !dynamic.SeparateSets {
+				for i := 0; i < repCount; i++ {
+					if i%2 == 0 {
+						set.RepSequence = append(set.RepSequence, 0)
+					} else {
+						set.RepSequence = append(set.RepSequence, 1)
+					}
+
+				}
+			} else {
+				for i := 0; i < repCount; i++ {
+					if i*2 < repCount {
+						set.RepSequence = append(set.RepSequence, 0)
+					} else {
+						set.RepSequence = append(set.RepSequence, 1)
+					}
+
+				}
 			}
+
 		}
 
 		dynamicSets = append(dynamicSets, set)
