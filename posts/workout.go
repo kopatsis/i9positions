@@ -58,7 +58,7 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 		} else if round.Status == "Combo" {
 			currentRound.SetSlice, currentRound.SetSequence, currentRound.Reps = ComboRound(exercises, round, imagesets, resolution, matrix)
 		} else {
-			currentRound.SetSlice, currentRound.SetSequence, currentRound.Reps = SplitRound(exercises, round, imagesets, resolution, matrix)
+			currentRound.SetSlice, currentRound.SetSequence, currentRound.Reps, currentRound.SplitPairs = SplitRound(exercises, round, imagesets, resolution, matrix)
 		}
 
 		currentRound.RestPosition = getSpecific(imagesets, resolution, "resting")
@@ -68,6 +68,7 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 	workout.Exercises = retExers
 
 	workout.CongratsPosition = getSpecific(imagesets, resolution, "congrats")
+	workout.StandingPosition = getSpecific(imagesets, resolution, "standing arms bent")
 
 	workout.BackendID = WOBody.ID.Hex()
 
@@ -82,7 +83,7 @@ func RegularRound(exercises map[string]datatypes.Exercise, round datatypes.Worko
 
 	if len(exer.PositionSlice2) == 0 {
 		displayReps := customRound(round.Reps[0])
-		if !(math.Mod(float64(displayReps), 1) > 0.4) {
+		if isWhole(displayReps) {
 
 			set := SingleRepSet(exer, displayReps, round.Times.ExercisePerSet, imagesets, resolution)
 
@@ -242,14 +243,16 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 
 }
 
-func SplitRound(exercises map[string]datatypes.Exercise, round datatypes.WorkoutRound, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix) ([]datatypes.Set, []int, []int) {
+func SplitRound(exercises map[string]datatypes.Exercise, round datatypes.WorkoutRound, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix) ([]datatypes.Set, []int, []int, [2]bool) {
 
 	setSlice, setSequence, roundReps := []datatypes.Set{}, []int{}, []int{}
+	var pairs [2]bool
 
 	displayReps := customRound(round.Reps[0])
-	if !(math.Mod(float64(displayReps), 1) > 0.4) { // May need to figure a different rounder lol
+	if isWhole(displayReps) {
 
-		set := splitSet(exercises[round.ExerciseIDs[0]], exercises[round.ExerciseIDs[1]], round.Times.ExercisePerSet, imagesets, resolution, matrix, displayReps)
+		set, pairsRet := splitSet(exercises[round.ExerciseIDs[0]], exercises[round.ExerciseIDs[1]], round.Times.ExercisePerSet, imagesets, resolution, matrix, displayReps)
+		pairs = pairsRet
 
 		setSlice = append(setSlice, set)
 
@@ -264,8 +267,9 @@ func SplitRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 		repCount1 := float32(math.Floor(float64(displayReps)))
 		repCount2 := repCount1 + 1
 
-		set1 := splitSet(exercises[round.ExerciseIDs[0]], exercises[round.ExerciseIDs[1]], round.Times.ExercisePerSet, imagesets, resolution, matrix, repCount1)
-		set2 := splitSet(exercises[round.ExerciseIDs[0]], exercises[round.ExerciseIDs[1]], round.Times.ExercisePerSet, imagesets, resolution, matrix, repCount2)
+		set1, _ := splitSet(exercises[round.ExerciseIDs[0]], exercises[round.ExerciseIDs[1]], round.Times.ExercisePerSet, imagesets, resolution, matrix, repCount1)
+		set2, pairsRet := splitSet(exercises[round.ExerciseIDs[0]], exercises[round.ExerciseIDs[1]], round.Times.ExercisePerSet, imagesets, resolution, matrix, repCount2)
+		pairs = pairsRet
 
 		setSlice = []datatypes.Set{set1, set2}
 
@@ -282,11 +286,13 @@ func SplitRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 		roundReps = append(roundReps, int(repCount2))
 	}
 
-	return setSlice, setSequence, roundReps
+	return setSlice, setSequence, roundReps, pairs
 }
 
-func splitSet(exer1, exer2 datatypes.Exercise, exercisePerSet float32, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix, displayReps float32) datatypes.Set {
+func splitSet(exer1, exer2 datatypes.Exercise, exercisePerSet float32, imagesets map[string]datatypes.ImageSet, resolution string, matrix datatypes.TransitionMatrix, displayReps float32) (datatypes.Set, [2]bool) {
 	timeGigaRep := exercisePerSet / displayReps
+
+	pairs := [2]bool{false, false}
 
 	trans1, trans2 := getSingleTransition(exer1, exer2, matrix, ""), getSingleTransition(exer2, exer1, matrix, "")
 
@@ -334,11 +340,13 @@ func splitSet(exer1, exer2 datatypes.Exercise, exercisePerSet float32, imagesets
 	exer1Rep := exerToRep(exer1, exer1RealTime, imagesets, resolution, false)
 	if len(exer1.PositionSlice2) != 0 {
 		exer1Rep = combineReps(exer1Rep, exerToRep(exer1, exer1RealTime, imagesets, resolution, true))
+		pairs[0] = true
 	}
 
 	exer2Rep := exerToRep(exer2, exer2RealTime, imagesets, resolution, false)
 	if len(exer2.PositionSlice2) != 0 {
 		exer2Rep = combineReps(exer2Rep, exerToRep(exer2, exer2RealTime, imagesets, resolution, true))
+		pairs[1] = true
 	}
 
 	exer1WTrans := combineReps(exer1Rep, transRep1)
@@ -361,7 +369,7 @@ func splitSet(exer1, exer2 datatypes.Exercise, exercisePerSet float32, imagesets
 	set.PositionInit = getInitImageSet(exer1, imagesets, resolution)
 	set.PositionEnd = getInitImageSet(exer2, imagesets, resolution)
 
-	return set
+	return set, pairs
 
 }
 
@@ -531,7 +539,7 @@ func combineSets(sets []datatypes.Set, transitions []datatypes.Rep) datatypes.Se
 
 	for i, set := range sets {
 		if i != 0 {
-			transition := transitions[i]
+			transition := transitions[i-1]
 
 			originalCt := len(ret.RepSlice)
 
@@ -755,4 +763,10 @@ func getInitImageSet(exer datatypes.Exercise, imagesets map[string]datatypes.Ima
 	default:
 		return imagesets[exer.ImageSetID0].Original
 	}
+}
+
+func isWhole(value float32) bool {
+	const tolerance = 0.001
+	diff := float64(value) - math.Round(float64(value))
+	return math.Abs(diff) < tolerance
 }

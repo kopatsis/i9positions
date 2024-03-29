@@ -31,6 +31,7 @@ func StretchWorkout(db *mongo.Database, resolution string, strWOBody datatypes.S
 	retWO.RoundTime = strWOBody.StretchTimes.FullRound / 2
 
 	retWO.CongratsPosition = getSpecific(imagesets, resolution, "congrats")
+	retWO.StandingPosition = getSpecific(imagesets, resolution, "standing arms bent")
 
 	retWO.BackendID = strWOBody.ID.Hex()
 

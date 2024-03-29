@@ -91,6 +91,7 @@ type WORound struct {
 	Type         string   `bson:"type"`
 	Names        []string `bson:"names"`
 	Reps         []int    `bson:"reps"`
+	SplitPairs   [2]bool  `bson:"splitpairs"`
 	SampleIDs    []string `bson:"samples"`
 	RestPosition []string `bson:"restposition"`
 }
@@ -116,6 +117,7 @@ type StretchWorkout struct {
 	DynamicSamples   []string           `bson:"dynamicsamples"`
 	StaticSamples    []string           `bson:"staticsamples"`
 	CongratsPosition []string           `bson:"congratspos"`
+	StandingPosition []string           `bson:"standingpos"`
 	RoundTime        float32            `bson:"roundtime"`
 }
 
@@ -133,6 +135,7 @@ type Workout struct {
 	DynamicSamples   []string           `bson:"dynamicsamples"`
 	StaticSamples    []string           `bson:"staticsamples"`
 	CongratsPosition []string           `bson:"congratspos"`
+	StandingPosition []string           `bson:"standingpos"`
 	Exercises        [9]WORound         `bson:"exercises"`
 }
 
