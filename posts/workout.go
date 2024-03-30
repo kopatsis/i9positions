@@ -67,7 +67,7 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 	}
 	workout.Exercises = retExers
 
-	workout.CongratsPosition = getSpecific(imagesets, resolution, "congrats")
+	workout.CongratsPosition = getSpecific(imagesets, resolution, "congrat")
 	workout.StandingPosition = getSpecific(imagesets, resolution, "standing arms bent")
 
 	workout.BackendID = WOBody.ID.Hex()

@@ -14,9 +14,10 @@ import (
 func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[string]datatypes.DynamicStr, map[string]datatypes.StaticStr, map[string]datatypes.ImageSet, error) {
 	var wg sync.WaitGroup
 
-	errChan := make(chan error, 2)
+	errChan := make(chan error, 3)
 	var errGroup *multierror.Error
 	dynamicStr, staticStr := map[string]datatypes.DynamicStr{}, map[string]datatypes.StaticStr{}
+	var imageSets map[string]datatypes.ImageSet
 
 	wg.Add(1)
 	go func() {
@@ -38,6 +39,16 @@ func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[s
 		}
 	}()
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var err error
+		imageSets, err = GetAllImageSets(database)
+		if err != nil {
+			errChan <- err
+		}
+	}()
+
 	wg.Wait()
 	close(errChan)
 
@@ -53,10 +64,10 @@ func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[s
 		return nil, nil, nil, errGroup
 	}
 
-	imageSets, err := GetImageSets(database, dynamicStr, staticStr)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	// imageSets, err := GetImageSets(database, dynamicStr, staticStr)
+	// if err != nil {
+	// 	return nil, nil, nil, err
+	// }
 
 	return dynamicStr, staticStr, imageSets, nil
 }
@@ -162,6 +173,29 @@ func GetImageSets(database *mongo.Database, dynamicStr map[string]datatypes.Dyna
 	return imageSets, nil
 }
 
+func GetAllImageSets(database *mongo.Database) (map[string]datatypes.ImageSet, error) {
+
+	imageSets := map[string]datatypes.ImageSet{}
+	collection := database.Collection("imageset")
+
+	cursor, err := collection.Find(context.TODO(), bson.M{})
+	if err != nil {
+		return nil, err
+	}
+
+	for cursor.Next(context.Background()) {
+		var result datatypes.ImageSet
+		err := cursor.Decode(&result)
+		if err != nil {
+			return nil, err
+		}
+
+		imageSets[result.ID.Hex()] = result
+	}
+
+	return imageSets, nil
+}
+
 func GetSamples(database *mongo.Database, dynamicStr map[string]datatypes.DynamicStr, staticStr map[string]datatypes.StaticStr) (map[string]datatypes.Sample, error) {
 	samples := map[string]datatypes.Sample{}
 
@@ -208,11 +242,13 @@ func GetSamples(database *mongo.Database, dynamicStr map[string]datatypes.Dynami
 }
 
 func UniqueStrSlice(sl []string) []string {
+
 	ret := []string{}
 	contains := map[string]bool{}
 	for _, s := range sl {
 		if _, ok := contains[s]; !ok {
 			ret = append(ret, s)
+			contains[s] = true
 		}
 	}
 	return ret

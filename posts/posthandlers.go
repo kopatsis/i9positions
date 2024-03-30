@@ -1,6 +1,7 @@
 package posts
 
 import (
+	"fmt"
 	"i9-pos/datatypes"
 	"slices"
 
@@ -12,9 +13,11 @@ func PostStretchWorkout(database *mongo.Database) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		resolution, exists := c.Params.Get("res")
-		if !exists || !slices.Contains([]string{"Low", "Medium", "High", "Original"}, resolution) {
+		if !exists || !slices.Contains([]string{"Low", "Mid", "High", "Original"}, resolution) {
 			resolution = "High"
 		}
+
+		fmt.Println(resolution)
 
 		var strWOBody datatypes.StretchWorkoutRoute
 		if err := c.ShouldBindJSON(&strWOBody); err != nil {

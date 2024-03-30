@@ -1,6 +1,7 @@
 package posts
 
 import (
+	"errors"
 	"i9-pos/database"
 	"i9-pos/datatypes"
 	"math"
@@ -15,13 +16,17 @@ func StretchWorkout(db *mongo.Database, resolution string, strWOBody datatypes.S
 
 	dynamics, statics, imagesets, err := database.QueryStretchWO(db, strWOBody.Statics, strWOBody.Dynamics)
 	if err != nil {
-		return datatypes.StretchWorkout{}, nil
+		return datatypes.StretchWorkout{}, err
+	}
+
+	if len(dynamics) == 0 || len(statics) == 0 || len(imagesets) == 0 {
+		return datatypes.StretchWorkout{}, errors.New("unfilled dynamic/static/imagesets returned")
 	}
 
 	dynamicSets, dynamicNames, dynamicSamples := DynamicSets(dynamics, strWOBody.Dynamics, strWOBody.StretchTimes, resolution, imagesets)
 	retWO.DynamicSlice = dynamicSets
 	retWO.DynamicNames = dynamicNames
-	retWO.StaticSamples = dynamicSamples
+	retWO.DynamicSamples = dynamicSamples
 
 	staticSets, staticNames, staticSamples := StaticSets(statics, strWOBody.Statics, strWOBody.StretchTimes, resolution, imagesets)
 	retWO.StaticSlice = staticSets
@@ -30,7 +35,7 @@ func StretchWorkout(db *mongo.Database, resolution string, strWOBody datatypes.S
 
 	retWO.RoundTime = strWOBody.StretchTimes.FullRound / 2
 
-	retWO.CongratsPosition = getSpecific(imagesets, resolution, "congrats")
+	retWO.CongratsPosition = getSpecific(imagesets, resolution, "congrat")
 	retWO.StandingPosition = getSpecific(imagesets, resolution, "standing arms bent")
 
 	retWO.BackendID = strWOBody.ID.Hex()
@@ -109,6 +114,7 @@ func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string,
 	dynamicSamples := []string{}
 
 	for i, id := range dynamicList {
+
 		dynamic, set := dynamics[id], datatypes.Set{}
 
 		if len(dynamic.PositionSlice2) == 0 {

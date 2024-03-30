@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"log"
+	"os"
 
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -18,7 +19,9 @@ func DisConnectDB(client *mongo.Client) {
 
 func ConnectDB() (*mongo.Client, *mongo.Database, error) {
 
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	connectStr := os.Getenv("MONGOSTRING")
+	clientOptions := options.Client().ApplyURI(connectStr).SetServerAPIOptions(serverAPI)
 
 	// Connect to MongoDB
 	client, err := mongo.Connect(context.Background(), clientOptions)

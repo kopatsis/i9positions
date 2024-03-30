@@ -59,7 +59,7 @@ func GetSampleByExtID(db *mongo.Database) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		typeStr, exists := c.Params.Get("type")
-		if !exists || (typeStr != "Exercise" && typeStr != "StaticStretch" && typeStr != "DynamicStretch") {
+		if !exists || (typeStr != "exercise" && typeStr != "static" && typeStr != "dynamic") {
 			c.JSON(400, gin.H{
 				"Error": "Issue with param",
 				"Exact": "Unable to get ID from URL parameter",
@@ -94,8 +94,17 @@ func SampleByExtID(db *mongo.Database, id, typeStr string) (datatypes.Sample, er
 
 	collection := db.Collection("sample")
 
+	var formattedType string
+	if typeStr == "exercise" {
+		formattedType = "Exercise"
+	} else if typeStr == "static" {
+		formattedType = "Static Stretch"
+	} else {
+		formattedType = "Dynamic Stretch"
+	}
+
 	var result datatypes.Sample
-	err := collection.FindOne(context.TODO(), bson.M{"exorstid": id, "type": typeStr}).Decode(&result)
+	err := collection.FindOne(context.TODO(), bson.M{"exorstid": id, "type": formattedType}).Decode(&result)
 	if err != nil {
 		return datatypes.Sample{}, err
 	}
