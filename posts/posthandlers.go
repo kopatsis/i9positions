@@ -2,7 +2,6 @@ package posts
 
 import (
 	"i9-pos/datatypes"
-	"slices"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -11,10 +10,10 @@ import (
 func PostStretchWorkout(database *mongo.Database) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		resolution, exists := c.Params.Get("res")
-		if !exists || !slices.Contains([]string{"Low", "Mid", "High", "Original"}, resolution) {
-			resolution = "High"
-		}
+		// resolution, exists := c.Params.Get("res")
+		// if !exists || !slices.Contains([]string{"Low", "Mid", "High", "Original"}, resolution) {
+		// 	resolution = "High"
+		// }
 
 		var strWOBody datatypes.StretchWorkoutRoute
 		if err := c.ShouldBindJSON(&strWOBody); err != nil {
@@ -25,7 +24,7 @@ func PostStretchWorkout(database *mongo.Database) gin.HandlerFunc {
 			return
 		}
 
-		stretchWO, err := StretchWorkout(database, resolution, strWOBody)
+		stretchWO, err := StretchWorkout(database, strWOBody)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"Error": "Issue with stretch WO creation",
@@ -47,10 +46,10 @@ func PostStretchWorkout(database *mongo.Database) gin.HandlerFunc {
 func PostWorkout(database *mongo.Database) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		resolution, exists := c.Params.Get("res")
-		if !exists || !slices.Contains([]string{"Low", "Mid", "High", "Original"}, resolution) {
-			resolution = "High"
-		}
+		// resolution, exists := c.Params.Get("res")
+		// if !exists || !slices.Contains([]string{"Low", "Mid", "High", "Original"}, resolution) {
+		// 	resolution = "High"
+		// }
 
 		var WOBody datatypes.WorkoutRoute
 		if err := c.ShouldBindJSON(&WOBody); err != nil {
@@ -61,7 +60,7 @@ func PostWorkout(database *mongo.Database) gin.HandlerFunc {
 			return
 		}
 
-		workout, err := Workout(database, resolution, WOBody)
+		workout, err := Workout(database, WOBody)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"Error": "Issue with WO creation",
@@ -87,9 +86,7 @@ func uniqueIMGsStr(strWO datatypes.StretchWorkout) []string {
 	for _, set := range strWO.DynamicSlice {
 		for _, rep := range set.RepSlice {
 			for _, pos := range rep.Positions {
-				for _, img := range pos {
-					imgMap[img] = true
-				}
+				imgMap[pos] = true
 			}
 		}
 	}
@@ -97,9 +94,7 @@ func uniqueIMGsStr(strWO datatypes.StretchWorkout) []string {
 	for _, set := range strWO.StaticSlice {
 		for _, rep := range set.RepSlice {
 			for _, pos := range rep.Positions {
-				for _, img := range pos {
-					imgMap[img] = true
-				}
+				imgMap[pos] = true
 			}
 		}
 	}
@@ -119,9 +114,7 @@ func uniqueIMGsWO(WO datatypes.Workout) []string {
 	for _, set := range WO.DynamicSlice {
 		for _, rep := range set.RepSlice {
 			for _, pos := range rep.Positions {
-				for _, img := range pos {
-					imgMap[img] = true
-				}
+				imgMap[pos] = true
 			}
 		}
 	}
@@ -129,9 +122,7 @@ func uniqueIMGsWO(WO datatypes.Workout) []string {
 	for _, set := range WO.StaticSlice {
 		for _, rep := range set.RepSlice {
 			for _, pos := range rep.Positions {
-				for _, img := range pos {
-					imgMap[img] = true
-				}
+				imgMap[pos] = true
 			}
 		}
 	}
@@ -140,9 +131,7 @@ func uniqueIMGsWO(WO datatypes.Workout) []string {
 		for _, set := range round.SetSlice {
 			for _, rep := range set.RepSlice {
 				for _, pos := range rep.Positions {
-					for _, img := range pos {
-						imgMap[img] = true
-					}
+					imgMap[pos] = true
 				}
 			}
 		}

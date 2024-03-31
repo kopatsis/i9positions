@@ -3,6 +3,7 @@ package datatypes
 import "go.mongodb.org/mongo-driver/bson/primitive"
 
 // Exists in DB as actual entry
+// Deprecated
 type ImageSet struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty"`
 	Low      []string           `bson:"low"`
@@ -65,19 +66,19 @@ type StaticStr struct {
 
 // Exists in DB as part of other entry
 type Rep struct {
-	Positions [][]string `bson:"positions"`
-	Times     []float32  `bson:"times"`
-	FullTime  float32    `bson:"fulltime"`
+	Positions []string  `bson:"positions"`
+	Times     []float32 `bson:"times"`
+	FullTime  float32   `bson:"fulltime"`
 }
 
 // Programatically created as actual entry in DB
 type Set struct {
-	RepSlice     []Rep    `bson:"reps"`
-	RepSequence  []int    `bson:"repsequence"`
-	RepCount     int      `bson:"repcount"`
-	PositionInit []string `bson:"positioninit"`
-	PositionEnd  []string `bson:"positionend"`
-	FullTime     float32  `bson:"fulltime"`
+	RepSlice     []Rep   `bson:"reps"`
+	RepSequence  []int   `bson:"repsequence"`
+	RepCount     int     `bson:"repcount"`
+	PositionInit string  `bson:"positioninit"`
+	PositionEnd  string  `bson:"positionend"`
+	FullTime     float32 `bson:"fulltime"`
 }
 
 // Programatically created as actual entry in DB
@@ -93,7 +94,7 @@ type WORound struct {
 	Reps         []int    `bson:"reps"`
 	SplitPairs   [2]bool  `bson:"splitpairs"`
 	SampleIDs    []string `bson:"samples"`
-	RestPosition []string `bson:"restposition"`
+	RestPosition string   `bson:"restposition"`
 }
 
 // Exists in DB as actual entry
@@ -116,8 +117,8 @@ type StretchWorkout struct {
 	StaticNames      []string           `bson:"staticnames"`
 	DynamicSamples   []string           `bson:"dynamicsamples"`
 	StaticSamples    []string           `bson:"staticsamples"`
-	CongratsPosition []string           `bson:"congratspos"`
-	StandingPosition []string           `bson:"standingpos"`
+	CongratsPosition string             `bson:"congratspos"`
+	StandingPosition string             `bson:"standingpos"`
 	RoundTime        float32            `bson:"roundtime"`
 }
 
@@ -134,8 +135,8 @@ type Workout struct {
 	StaticNames      []string           `bson:"staticnames"`
 	DynamicSamples   []string           `bson:"dynamicsamples"`
 	StaticSamples    []string           `bson:"staticsamples"`
-	CongratsPosition []string           `bson:"congratspos"`
-	StandingPosition []string           `bson:"standingpos"`
+	CongratsPosition string             `bson:"congratspos"`
+	StandingPosition string             `bson:"standingpos"`
 	Exercises        [9]WORound         `bson:"exercises"`
 }
 

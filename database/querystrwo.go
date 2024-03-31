@@ -11,13 +11,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[string]datatypes.DynamicStr, map[string]datatypes.StaticStr, map[string]datatypes.ImageSet, error) {
+func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[string]datatypes.DynamicStr, map[string]datatypes.StaticStr, error) {
 	var wg sync.WaitGroup
 
-	errChan := make(chan error, 3)
+	errChan := make(chan error, 2)
 	var errGroup *multierror.Error
 	dynamicStr, staticStr := map[string]datatypes.DynamicStr{}, map[string]datatypes.StaticStr{}
-	var imageSets map[string]datatypes.ImageSet
+	// var imageSets map[string]datatypes.ImageSet
 
 	wg.Add(1)
 	go func() {
@@ -39,15 +39,15 @@ func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[s
 		}
 	}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		imageSets, err = GetAllImageSets(database)
-		if err != nil {
-			errChan <- err
-		}
-	}()
+	// wg.Add(1)
+	// go func() {
+	// 	defer wg.Done()
+	// 	var err error
+	// 	imageSets, err = GetAllImageSets(database)
+	// 	if err != nil {
+	// 		errChan <- err
+	// 	}
+	// }()
 
 	wg.Wait()
 	close(errChan)
@@ -61,7 +61,7 @@ func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[s
 	}
 
 	if hasErr {
-		return nil, nil, nil, errGroup
+		return nil, nil, errGroup
 	}
 
 	// imageSets, err := GetImageSets(database, dynamicStr, staticStr)
@@ -69,7 +69,7 @@ func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[s
 	// 	return nil, nil, nil, err
 	// }
 
-	return dynamicStr, staticStr, imageSets, nil
+	return dynamicStr, staticStr, nil
 }
 
 func GetDynamics(database *mongo.Database, dynamics []string) (map[string]datatypes.DynamicStr, error) {

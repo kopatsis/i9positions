@@ -22,8 +22,8 @@ func New(database *mongo.Database) *gin.Engine {
 	router.GET("/samples/:id", gets.GetSampleByID(database))
 	router.GET("/samples/ext/:type/:id", gets.GetSampleByExtID(database))
 
-	router.POST("/workouts/stretch/:res", posts.PostStretchWorkout(database))
-	router.POST("/workouts/:res", posts.PostWorkout(database))
+	router.POST("/workouts/stretch", posts.PostStretchWorkout(database))
+	router.POST("/workouts", posts.PostWorkout(database))
 
 	return router
 }
