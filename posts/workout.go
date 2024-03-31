@@ -1,6 +1,7 @@
 package posts
 
 import (
+	"errors"
 	"i9-pos/database"
 	"i9-pos/datatypes"
 	"math"
@@ -18,7 +19,11 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 
 	dynamics, statics, imagesets, exercises, matrix, err := database.QueryWO(db, WOBody.Statics, WOBody.Dynamics, exerIDRoundList)
 	if err != nil {
-		return datatypes.Workout{}, nil
+		return datatypes.Workout{}, err
+	}
+
+	if len(dynamics) == 0 || len(statics) == 0 || len(imagesets) == 0 || len(exercises) == 0 {
+		return datatypes.Workout{}, errors.New("unfilled dynamic/static/imagesets/exercises returned")
 	}
 
 	dynamicSets, dynamicNames, dynamicSamples := DynamicSets(dynamics, WOBody.Dynamics, WOBody.StretchTimes, resolution, imagesets)
@@ -45,7 +50,7 @@ func Workout(db *mongo.Database, resolution string, WOBody datatypes.WorkoutRout
 		currentRound.Type = round.Status
 		for _, id := range round.ExerciseIDs {
 			currentRound.Names = append(currentRound.Names, exercises[id].Name)
-			currentRound.SampleIDs = append(currentRound.Names, exercises[id].SampleID)
+			currentRound.SampleIDs = append(currentRound.SampleIDs, exercises[id].SampleID)
 		}
 
 		currentRound.SetCount = round.Times.Sets

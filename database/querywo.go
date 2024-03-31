@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"i9-pos/datatypes"
 	"sync"
 
@@ -25,6 +26,7 @@ func QueryWO(database *mongo.Database, statics, dynamics []string, exercises [9]
 		var err error
 		dynamicStr, err = GetDynamics(database, dynamics)
 		if err != nil {
+			fmt.Println("1")
 			errChan <- err
 		}
 	}()
@@ -35,6 +37,7 @@ func QueryWO(database *mongo.Database, statics, dynamics []string, exercises [9]
 		var err error
 		staticStr, err = GetStatics(database, statics)
 		if err != nil {
+			fmt.Println("2")
 			errChan <- err
 		}
 	}()
@@ -45,6 +48,7 @@ func QueryWO(database *mongo.Database, statics, dynamics []string, exercises [9]
 		var err error
 		exerciseMap, err = GetExercises(database, exercises)
 		if err != nil {
+			fmt.Println("3")
 			errChan <- err
 		}
 	}()
@@ -55,6 +59,7 @@ func QueryWO(database *mongo.Database, statics, dynamics []string, exercises [9]
 		var err error
 		matrix, err = GetTransitionMatrix(database)
 		if err != nil {
+			fmt.Println("4")
 			errChan <- err
 		}
 	}()
@@ -65,6 +70,7 @@ func QueryWO(database *mongo.Database, statics, dynamics []string, exercises [9]
 		var err error
 		imageSets, err = GetAllImageSets(database)
 		if err != nil {
+			fmt.Println("5")
 			errChan <- err
 		}
 	}()

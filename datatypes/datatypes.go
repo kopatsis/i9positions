@@ -32,7 +32,7 @@ type Exercise struct {
 	ID             primitive.ObjectID `bson:"_id,omitempty"`
 	BackendID      string             `bson:"backendID"`
 	Name           string             `bson:"name"`
-	Parent         string             `bson:"name"`
+	Parent         string             `bson:"parent"`
 	MaxSecs        float32            `bson:"maxsecs"`
 	MinSecs        float32            `bson:"minsecs"`
 	ImageSetID0    string             `bson:"imageset0"`
