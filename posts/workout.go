@@ -57,6 +57,7 @@ func Workout(db *mongo.Database, WOBody datatypes.WorkoutRoute) (datatypes.Worko
 		currentRound.FullTime = round.Times.FullRound
 		currentRound.RestPerRound = round.Times.RestPerRound
 		currentRound.RestPerSet = round.Times.RestPerSet
+		currentRound.ExerPerSet = round.Times.ExercisePerSet
 
 		if round.Status == "Regular" {
 			currentRound.SetSlice, currentRound.SetSequence, currentRound.Reps = RegularRound(exercises, round)

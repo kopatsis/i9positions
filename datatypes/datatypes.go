@@ -89,6 +89,7 @@ type WORound struct {
 	FullTime     float32  `bson:"fulltime"`
 	RestPerRound float32  `bson:"restround"`
 	RestPerSet   float32  `bson:"restset"`
+	ExerPerSet   float32  `bson:"exerset"`
 	Type         string   `bson:"type"`
 	Names        []string `bson:"names"`
 	Reps         []int    `bson:"reps"`
