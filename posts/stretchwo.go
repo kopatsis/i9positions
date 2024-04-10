@@ -61,6 +61,7 @@ func StaticSets(statics map[string]datatypes.StaticStr, staticList []string, str
 			set.RepCount = 1
 			set.RepSlice = []datatypes.Rep{rep}
 			set.RepSequence = []int{0}
+			set.SeparateStretch = false
 		} else {
 			rep1, rep2 := datatypes.Rep{}, datatypes.Rep{}
 
@@ -72,6 +73,7 @@ func StaticSets(statics map[string]datatypes.StaticStr, staticList []string, str
 			set.RepCount = 2
 			set.RepSlice = []datatypes.Rep{rep1, rep2}
 			set.RepSequence = []int{0, 1}
+			set.SeparateStretch = true
 		}
 
 		staticSets = append(staticSets, set)
@@ -109,6 +111,7 @@ func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string,
 			currentRep.Positions = positions
 			currentRep.Times = times
 
+			set.SeparateStretch = false
 			set.FullTime = setTime
 			set.RepSlice = []datatypes.Rep{currentRep}
 			set.RepCount = repCount
@@ -124,8 +127,10 @@ func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string,
 			var repCount int
 			if dynamic.SeparateSets {
 				repCount = int(math.RoundToEven(float64(setTime) / float64(dynamic.Secs)))
+				set.SeparateStretch = true
 			} else {
 				repCount = int(math.Round(float64(setTime) / float64(dynamic.Secs)))
+				set.SeparateStretch = false
 			}
 
 			realRepTime := setTime / float32(repCount)

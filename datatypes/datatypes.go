@@ -73,12 +73,13 @@ type Rep struct {
 
 // Programatically created as actual entry in DB
 type Set struct {
-	RepSlice     []Rep   `bson:"reps"`
-	RepSequence  []int   `bson:"repsequence"`
-	RepCount     int     `bson:"repcount"`
-	PositionInit string  `bson:"positioninit"`
-	PositionEnd  string  `bson:"positionend"`
-	FullTime     float32 `bson:"fulltime"`
+	RepSlice        []Rep   `bson:"reps"`
+	RepSequence     []int   `bson:"repsequence"`
+	RepCount        int     `bson:"repcount"`
+	PositionInit    string  `bson:"positioninit"`
+	PositionEnd     string  `bson:"positionend"`
+	SeparateStretch bool    `bson:"sepstretch"`
+	FullTime        float32 `bson:"fulltime"`
 }
 
 // Programatically created as actual entry in DB
