@@ -23,6 +23,9 @@ var (
 
 func fetchJWKS() error {
 
+	// Adapt below to AWS, ideally this is all that is needed
+	// jwksURL := "https://cognito-idp." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + os.Getenv("COGNITO_USER_POOL_ID") + "/.well-known/jwks.json"
+
 	jwksURL := "https://" + os.Getenv("AUTH0_DOMAIN") + "/.well-known/jwks.json"
 
 	resp, err := http.Get(jwksURL)

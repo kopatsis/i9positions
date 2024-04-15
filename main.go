@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"i9-pos/database"
 	"i9-pos/platform"
 	"log"
 	"net/http"
 	"os"
+
+	firebase "firebase.google.com/go"
+	"google.golang.org/api/option"
 
 	"github.com/joho/godotenv"
 )
@@ -24,7 +28,13 @@ func main() {
 	}
 	defer database.DisConnectDB(client)
 
-	rtr := platform.New(db)
+	sa := option.WithCredentialsFile("i9auth-firebase-adminsdk-dgzg6-f59f9349ed.json")
+	firebase, err := firebase.NewApp(context.Background(), nil, sa)
+	if err != nil {
+		log.Fatalf("error initializing app: %v\n", err)
+	}
+
+	rtr := platform.New(db, firebase)
 
 	port := os.Getenv("PORT")
 	if port == "" {
