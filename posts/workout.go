@@ -17,7 +17,7 @@ func Workout(db *mongo.Database, WOBody datatypes.WorkoutRoute) (datatypes.Worko
 		exerIDRoundList[i] = workoutRound.ExerciseIDs
 	}
 
-	dynamics, statics, exercises, matrix, err := database.QueryWO(db, WOBody.Statics, WOBody.Dynamics, exerIDRoundList)
+	dynamics, statics, exercises, matrix, err := database.QueryWO(db, WOBody.Difficulty == 1, WOBody.Statics, WOBody.Dynamics, exerIDRoundList)
 	if err != nil {
 		return datatypes.Workout{}, err
 	}
