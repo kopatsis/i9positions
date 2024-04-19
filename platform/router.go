@@ -15,7 +15,7 @@ func New(database *mongo.Database, firebase *firebase.App) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(middleware.CORSMiddleware())
-	router.Use(middleware.JWTAuthMiddleware())
+	router.Use(middleware.JWTAuthMiddleware(firebase))
 
 	router.GET("/", temp())
 
