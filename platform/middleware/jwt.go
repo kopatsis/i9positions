@@ -30,7 +30,7 @@ func interfaceSliceToStringSlice(s []interface{}) ([]string, error) {
 func JWTAuthMiddleware(firebase *firebase.App) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		if strings.HasPrefix(c.Request.URL.Path, "/users/local") {
+		if c.Request.Method != "POST" {
 			c.Next()
 			return
 		}
