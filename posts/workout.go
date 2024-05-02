@@ -2,7 +2,6 @@ package posts
 
 import (
 	"errors"
-	"fmt"
 	"i9-pos/database"
 	"i9-pos/datatypes"
 	"math"
@@ -78,8 +77,6 @@ func Workout(db *mongo.Database, WOBody datatypes.WorkoutRoute) (datatypes.Worko
 	workout.StandingPosition = "standing-arms-bent"
 
 	workout.BackendID = WOBody.ID.Hex()
-
-	fmt.Println(workout)
 
 	return workout, nil
 }

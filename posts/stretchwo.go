@@ -99,7 +99,7 @@ func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string,
 
 		if len(dynamic.PositionSlice2) == 0 {
 			setTime := stretchTimes.DynamicPerSet[i]
-			repCount := int(math.Round(float64(setTime) / float64(dynamic.Secs)))
+			repCount := int(math.Max(1, math.Round(float64(setTime)/float64(dynamic.Secs))))
 			realRepTime := setTime / float32(repCount)
 
 			var currentRep datatypes.Rep
@@ -129,10 +129,10 @@ func DynamicSets(dynamics map[string]datatypes.DynamicStr, dynamicList []string,
 
 			var repCount int
 			if dynamic.SeparateSets {
-				repCount = int(math.RoundToEven(float64(setTime) / float64(dynamic.Secs)))
+				repCount = int(math.Max(1, math.RoundToEven(float64(setTime)/float64(dynamic.Secs))))
 				set.SeparateStretch = true
 			} else {
-				repCount = int(math.Round(float64(setTime) / float64(dynamic.Secs)))
+				repCount = int(math.Max(1, math.Round(float64(setTime)/float64(dynamic.Secs))))
 				set.SeparateStretch = false
 			}
 

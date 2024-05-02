@@ -10,11 +10,6 @@ import (
 func PostStretchWorkout(database *mongo.Database) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		// resolution, exists := c.Params.Get("res")
-		// if !exists || !slices.Contains([]string{"Low", "Mid", "High", "Original"}, resolution) {
-		// 	resolution = "High"
-		// }
-
 		var strWOBody datatypes.StretchWorkoutRoute
 		if err := c.ShouldBindJSON(&strWOBody); err != nil {
 			c.JSON(400, gin.H{
@@ -45,11 +40,6 @@ func PostStretchWorkout(database *mongo.Database) gin.HandlerFunc {
 
 func PostWorkout(database *mongo.Database) gin.HandlerFunc {
 	return func(c *gin.Context) {
-
-		// resolution, exists := c.Params.Get("res")
-		// if !exists || !slices.Contains([]string{"Low", "Mid", "High", "Original"}, resolution) {
-		// 	resolution = "High"
-		// }
 
 		var WOBody datatypes.WorkoutRoute
 		if err := c.ShouldBindJSON(&WOBody); err != nil {
