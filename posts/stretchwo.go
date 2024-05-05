@@ -2,7 +2,6 @@ package posts
 
 import (
 	"errors"
-	"fmt"
 	"i9-pos/database"
 	"i9-pos/datatypes"
 	"math"
@@ -39,8 +38,6 @@ func StretchWorkout(db *mongo.Database, strWOBody datatypes.StretchWorkoutRoute)
 	retWO.StandingPosition = "standing-arms-bent"
 
 	retWO.BackendID = strWOBody.ID.Hex()
-
-	fmt.Println(retWO)
 
 	return retWO, nil
 }
