@@ -381,9 +381,10 @@ func splitSet(exer1, exer2 datatypes.Exercise, exercisePerSet float32, matrix da
 
 func SingleRepSet(exer datatypes.Exercise, displayReps float32, exercisePerSet float32) datatypes.Set {
 
+	trueMax := float32(math.Max(float64(exer.MaxSecs), float64((0.67)*(exercisePerSet/displayReps))))
 	rep, set := datatypes.Rep{}, datatypes.Set{}
 	positions, times := []string{}, []float32{}
-	initRepTime := float32(math.Min(float64(exer.MaxSecs), float64(exercisePerSet/displayReps)))
+	initRepTime := float32(math.Min(float64(trueMax), float64(exercisePerSet/displayReps)))
 	totalTime := initRepTime * displayReps
 	calcTime := float32(math.Max(float64(initRepTime), float64(exer.MinSecs)))
 
@@ -433,7 +434,8 @@ func AlternatingRepSet(exer datatypes.Exercise, displayReps float32, exercisePer
 
 	rep1, rep2 := datatypes.Rep{}, datatypes.Rep{}
 
-	initRepTime := float32(math.Min(float64(exer.MaxSecs), float64(exercisePerSet/displayReps)))
+	trueMax := float32(math.Max(float64(exer.MaxSecs), float64((0.67)*(exercisePerSet/displayReps))))
+	initRepTime := float32(math.Min(float64(trueMax), float64(exercisePerSet/displayReps)))
 	for i := 0; i < 2; i++ {
 
 		positions, times := []string{}, []float32{}
