@@ -343,15 +343,22 @@ func splitSet(exer1, exer2 datatypes.Exercise, exercisePerSet float32, matrix da
 	exer1RealTime := (exer1defaultTime / sumTime) * justExerTime
 	exer2RealTime := (exer2defaultTime / sumTime) * justExerTime
 
+	if (exer1RealTime + exer2RealTime) > justExerTime {
+		exer1RealTime *= (justExerTime / (exer1RealTime + exer2RealTime))
+		exer2RealTime *= (justExerTime / (exer1RealTime + exer2RealTime))
+	}
+
 	exer1Rep := exerToRep(exer1, exer1RealTime, false)
 	if len(exer1.PositionSlice2) != 0 {
-		exer1Rep = combineReps(exer1Rep, exerToRep(exer1, exer1RealTime, true))
+		exer1Rep = exerToRep(exer1, exer1RealTime*.5, false)
+		exer1Rep = combineReps(exer1Rep, exerToRep(exer1, exer1RealTime*.5, true))
 		pairs[0] = true
 	}
 
 	exer2Rep := exerToRep(exer2, exer2RealTime, false)
 	if len(exer2.PositionSlice2) != 0 {
-		exer2Rep = combineReps(exer2Rep, exerToRep(exer2, exer2RealTime, true))
+		exer2Rep = exerToRep(exer2, exer2RealTime*.5, false)
+		exer2Rep = combineReps(exer2Rep, exerToRep(exer2, exer2RealTime*.5, true))
 		pairs[1] = true
 	}
 
@@ -537,6 +544,7 @@ func combineSets(sets []datatypes.Set, transitions []datatypes.Rep) datatypes.Se
 			ret.FullTime += transition.FullTime + set.FullTime
 		}
 	}
+	ret.PositionEnd = sets[len(sets)-1].PositionEnd
 
 	return ret
 }
