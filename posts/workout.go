@@ -181,7 +181,7 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 		remainder := float32(1.0)
 
 		for i, exID := range round.ExerciseIDs {
-			displayReps := float32(math.Round(float64(perExerTime/round.Reps[i]))) * remainder
+			displayReps := float32(math.Round(float64(round.Reps[i] * remainder)))
 
 			roundReps = append(roundReps, int(displayReps))
 
@@ -210,7 +210,7 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 		remainder := float32(1.0)
 
 		for i, exID := range round.ExerciseIDs {
-			displayReps := float32(math.Round(float64(perExerTime/round.Reps[i]))) * remainder
+			displayReps := float32(math.Round(float64(round.Reps[i] * remainder)))
 
 			roundReps = append(roundReps, int(displayReps))
 
