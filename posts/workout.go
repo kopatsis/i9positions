@@ -216,12 +216,16 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 
 			remainder = 1 + ((round.Reps[i])-displayReps)/(round.Reps[i])
 
-			setsToCombine1 = append(setsToCombine1, AlternatingRepSet(exercises[exID], displayReps, perExerTime, true))
-
-			if int(displayReps)%2 == 0 {
-				setsToCombine2 = append(setsToCombine2, AlternatingRepSet(exercises[exID], displayReps, perExerTime, true))
+			if len(exercises[exID].PositionSlice2) == 0 {
+				setsToCombine1 = append(setsToCombine1, SingleRepSet(exercises[exID], displayReps, perExerTime))
+				setsToCombine2 = append(setsToCombine2, SingleRepSet(exercises[exID], displayReps, perExerTime))
 			} else {
-				setsToCombine2 = append(setsToCombine2, AlternatingRepSet(exercises[exID], displayReps, perExerTime, false))
+				setsToCombine1 = append(setsToCombine1, AlternatingRepSet(exercises[exID], displayReps, perExerTime, true))
+				if int(displayReps)%2 == 0 {
+					setsToCombine2 = append(setsToCombine2, AlternatingRepSet(exercises[exID], displayReps, perExerTime, true))
+				} else {
+					setsToCombine2 = append(setsToCombine2, AlternatingRepSet(exercises[exID], displayReps, perExerTime, false))
+				}
 			}
 		}
 
