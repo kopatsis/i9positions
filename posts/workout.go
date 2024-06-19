@@ -563,13 +563,18 @@ func combineReps(rep1 datatypes.Rep, rep2 datatypes.Rep) datatypes.Rep {
 
 func customRound(num float32) float32 {
 	whole, decimal := math.Modf(float64(num))
-	if decimal < 0.399 {
+	// if decimal < 0.399 {
+	// 	return float32(whole)
+	// } else if decimal > 0.601 {
+	// 	return float32(whole + 1)
+	// } else {
+	// 	return float32(whole + 0.5)
+	// }
+	if decimal < 0.5 {
 		return float32(whole)
-	} else if decimal > 0.601 {
-		return float32(whole + 1)
-	} else {
-		return float32(whole + 0.5)
 	}
+	return float32(whole + 1)
+
 }
 
 func exerToRep(exer datatypes.Exercise, initRepTime float32, alternate bool) datatypes.Rep {
