@@ -193,7 +193,7 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 		set := combineSets(setsToCombine, transitions)
 
 		set.PositionInit = exercises[round.ExerciseIDs[0]].ImageSetID0
-		set.PositionInit = exercises[round.ExerciseIDs[len(round.ExerciseIDs)-1]].ImageSetID0
+		set.PositionEnd = exercises[round.ExerciseIDs[len(round.ExerciseIDs)-1]].ImageSetID0
 
 		setSlice = append(setSlice, set)
 
@@ -232,10 +232,10 @@ func ComboRound(exercises map[string]datatypes.Exercise, round datatypes.Workout
 		set1, set2 := combineSets(setsToCombine1, transitions), combineSets(setsToCombine2, transitions)
 
 		set1.PositionInit = exercises[round.ExerciseIDs[0]].ImageSetID0
-		set1.PositionInit = exercises[round.ExerciseIDs[len(round.ExerciseIDs)-1]].ImageSetID0
+		set1.PositionEnd = exercises[round.ExerciseIDs[len(round.ExerciseIDs)-1]].ImageSetID0
 
 		set2.PositionInit = exercises[round.ExerciseIDs[0]].ImageSetID0
-		set2.PositionInit = exercises[round.ExerciseIDs[len(round.ExerciseIDs)-1]].ImageSetID0
+		set2.PositionEnd = exercises[round.ExerciseIDs[len(round.ExerciseIDs)-1]].ImageSetID0
 
 		setSlice = []datatypes.Set{set1, set2}
 
