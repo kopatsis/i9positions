@@ -42,5 +42,6 @@ type WorkoutRound struct {
 	Pairs       []bool
 	Status      string
 	Times       ExerciseTimes
-	Rating      float32
+	AvgRating   float32
+	AvgFaves    float32
 }
