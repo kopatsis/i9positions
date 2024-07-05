@@ -20,7 +20,6 @@ func QueryStretchWO(database *mongo.Database, boltDB *bbolt.DB, statics, dynamic
 	errChan := make(chan error, 2)
 	var errGroup *multierror.Error
 	dynamicStr, staticStr := map[string]datatypes.DynamicStr{}, map[string]datatypes.StaticStr{}
-	// var imageSets map[string]datatypes.ImageSet
 
 	wg.Add(1)
 	go func() {
