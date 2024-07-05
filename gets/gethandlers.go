@@ -2,17 +2,22 @@ package gets
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"i9-pos/database"
 	"i9-pos/datatypes"
+	"log"
+	"slices"
 
 	"github.com/gin-gonic/gin"
+	"go.etcd.io/bbolt"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func GetSampleByID(db *mongo.Database) gin.HandlerFunc {
+const bucketName = "CacheBucket"
+
+func GetSampleByID(db *mongo.Database, boltDB *bbolt.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		idStr, exists := c.Params.Get("id")
@@ -24,7 +29,7 @@ func GetSampleByID(db *mongo.Database) gin.HandlerFunc {
 			return
 		}
 
-		sample, err := SampleByID(db, idStr)
+		sample, err := SampleByID(db, boltDB, idStr)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"Error": "Issue with querying sample",
@@ -38,24 +43,23 @@ func GetSampleByID(db *mongo.Database) gin.HandlerFunc {
 	}
 }
 
-func SampleByID(db *mongo.Database, id string) (datatypes.Sample, error) {
-	objID, err := primitive.ObjectIDFromHex(id)
+func SampleByID(db *mongo.Database, boltDB *bbolt.DB, id string) (datatypes.Sample, error) {
+
+	samples, err := BoltSamples(db, boltDB)
 	if err != nil {
 		return datatypes.Sample{}, err
 	}
 
-	collection := db.Collection("sample")
-
-	var result datatypes.Sample
-	err = collection.FindOne(context.TODO(), bson.M{"_id": objID}).Decode(&result)
-	if err != nil {
-		return datatypes.Sample{}, err
+	for _, sample := range samples {
+		if sample.ID.Hex() == id {
+			return sample, nil
+		}
 	}
 
-	return result, nil
+	return datatypes.Sample{}, errors.New("no matches for sample id")
 }
 
-func GetSampleByExtID(db *mongo.Database) gin.HandlerFunc {
+func GetSampleByExtID(db *mongo.Database, boltDB *bbolt.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		typeStr, exists := c.Params.Get("type")
@@ -76,7 +80,7 @@ func GetSampleByExtID(db *mongo.Database) gin.HandlerFunc {
 			return
 		}
 
-		sample, err := SampleByExtID(db, idStr, typeStr)
+		sample, err := SampleByExtID(db, boltDB, idStr, typeStr)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"Error": "Issue with querying sample",
@@ -90,9 +94,7 @@ func GetSampleByExtID(db *mongo.Database) gin.HandlerFunc {
 	}
 }
 
-func SampleByExtID(db *mongo.Database, id, typeStr string) (datatypes.Sample, error) {
-
-	collection := db.Collection("sample")
+func SampleByExtID(db *mongo.Database, boltDB *bbolt.DB, id, typeStr string) (datatypes.Sample, error) {
 
 	var formattedType string
 	if typeStr == "exercise" {
@@ -103,20 +105,25 @@ func SampleByExtID(db *mongo.Database, id, typeStr string) (datatypes.Sample, er
 		formattedType = "Dynamic Stretch"
 	}
 
-	var result datatypes.Sample
-	err := collection.FindOne(context.TODO(), bson.M{"exorstid": id, "type": formattedType}).Decode(&result)
+	samples, err := BoltSamples(db, boltDB)
 	if err != nil {
 		return datatypes.Sample{}, err
 	}
 
-	return result, nil
+	for _, sample := range samples {
+		if sample.ExOrStID == id && sample.Type == formattedType {
+			return sample, nil
+		}
+	}
+
+	return datatypes.Sample{}, errors.New("no sample matches provided id")
 }
 
-func GetSamples(db *mongo.Database) gin.HandlerFunc {
+func GetSamples(db *mongo.Database, boltDB *bbolt.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		if idList, ok := c.GetQueryArray("idList"); ok {
-			samples, err := GetSamplesByList(db, idList)
+			samples, err := GetSamplesByList(db, boltDB, idList)
 			if err != nil {
 				c.JSON(400, gin.H{
 					"Error": "Issue with querying samples",
@@ -127,7 +134,7 @@ func GetSamples(db *mongo.Database) gin.HandlerFunc {
 
 			c.JSON(200, samples)
 		} else {
-			samples, err := AllSamples(db)
+			samples, err := BoltSamples(db, boltDB)
 			if err != nil {
 				c.JSON(400, gin.H{
 					"Error": "Issue with querying samples",
@@ -142,64 +149,69 @@ func GetSamples(db *mongo.Database) gin.HandlerFunc {
 	}
 }
 
-func AllSamples(db *mongo.Database) ([]datatypes.Sample, error) {
-
-	collection := db.Collection("sample")
-
-	var samples []datatypes.Sample
-	cur, err := collection.Find(context.TODO(), bson.D{{}}, options.Find())
-	if err != nil {
-		return nil, err
-	}
-	defer cur.Close(context.Background())
-
-	for cur.Next(context.Background()) {
-		var sample datatypes.Sample
-		err := cur.Decode(&sample)
-		if err != nil {
-			return nil, err
-		}
-		samples = append(samples, sample)
-	}
-
-	if err := cur.Err(); err != nil {
-		return nil, err
-	}
-
-	return samples, nil
-}
-
-func GetSamplesByList(db *mongo.Database, idList []string) (map[string]datatypes.Sample, error) {
+func GetSamplesByList(db *mongo.Database, boltDB *bbolt.DB, idList []string) (map[string]datatypes.Sample, error) {
 	samples := map[string]datatypes.Sample{}
 
 	uniqueSampleIDs := database.UniqueStrSlice(idList)
 
-	sampleIDPrims := []primitive.ObjectID{}
-
-	for _, id := range uniqueSampleIDs {
-		objID, err := primitive.ObjectIDFromHex(id)
-		if err != nil {
-			return nil, err
-		}
-		sampleIDPrims = append(sampleIDPrims, objID)
-	}
-
-	collection := db.Collection("sample")
-
-	filter := bson.M{"_id": bson.M{"$in": sampleIDPrims}}
-	cursor, err := collection.Find(context.TODO(), filter)
+	sampleSlice, err := BoltSamples(db, boltDB)
 	if err != nil {
 		return nil, err
 	}
 
-	for cursor.Next(context.Background()) {
-		var result datatypes.Sample
-		err := cursor.Decode(&result)
+	for _, sample := range sampleSlice {
+		if slices.Contains(uniqueSampleIDs, sample.ID.Hex()) {
+			samples[sample.ID.Hex()] = sample
+		}
+	}
+
+	return samples, nil
+
+}
+
+func BoltSamples(database *mongo.Database, boltDB *bbolt.DB) ([]datatypes.Sample, error) {
+	var samples []datatypes.Sample
+
+	err := boltDB.Update(func(tx *bbolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte(bucketName))
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		samples[result.ID.Hex()] = result
+		v := b.Get([]byte("Sample"))
+		if v != nil {
+			err := json.Unmarshal(v, &samples)
+			if err == nil {
+				return nil
+			}
+			log.Printf("Failed to unmarshal from bbolt: %v, fetching from MongoDB", err)
+		}
+
+		cursor, err := database.Collection("sample").Find(context.Background(), bson.D{})
+		if err != nil {
+			return err
+		}
+		defer cursor.Close(context.Background())
+
+		if err = cursor.All(context.Background(), &samples); err != nil {
+			return err
+		}
+
+		data, err := json.Marshal(samples)
+		if err != nil {
+			return err
+		}
+
+		err = b.Put([]byte("Sample"), data)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return samples, nil

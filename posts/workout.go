@@ -6,10 +6,11 @@ import (
 	"i9-pos/datatypes"
 	"math"
 
+	"go.etcd.io/bbolt"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func Workout(db *mongo.Database, WOBody datatypes.WorkoutRoute) (datatypes.Workout, error) {
+func Workout(db *mongo.Database, boltDB *bbolt.DB, WOBody datatypes.WorkoutRoute) (datatypes.Workout, error) {
 	workout := datatypes.Workout{}
 
 	exerIDRoundList := [9][]string{}
@@ -17,7 +18,7 @@ func Workout(db *mongo.Database, WOBody datatypes.WorkoutRoute) (datatypes.Worko
 		exerIDRoundList[i] = workoutRound.ExerciseIDs
 	}
 
-	dynamics, statics, exercises, matrix, err := database.QueryWO(db, WOBody.Difficulty == 1, WOBody.Statics, WOBody.Dynamics, exerIDRoundList)
+	dynamics, statics, exercises, matrix, err := database.QueryWO(db, boltDB, WOBody.Difficulty == 1, WOBody.Statics, WOBody.Dynamics, exerIDRoundList)
 	if err != nil {
 		return datatypes.Workout{}, err
 	}

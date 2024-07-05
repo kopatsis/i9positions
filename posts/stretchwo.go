@@ -6,14 +6,15 @@ import (
 	"i9-pos/datatypes"
 	"math"
 
+	"go.etcd.io/bbolt"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func StretchWorkout(db *mongo.Database, strWOBody datatypes.StretchWorkoutRoute) (datatypes.StretchWorkout, error) {
+func StretchWorkout(db *mongo.Database, boltDB *bbolt.DB, strWOBody datatypes.StretchWorkoutRoute) (datatypes.StretchWorkout, error) {
 
 	retWO := datatypes.StretchWorkout{}
 
-	dynamics, statics, err := database.QueryStretchWO(db, strWOBody.Statics, strWOBody.Dynamics)
+	dynamics, statics, err := database.QueryStretchWO(db, boltDB, strWOBody.Statics, strWOBody.Dynamics)
 	if err != nil {
 		return datatypes.StretchWorkout{}, err
 	}

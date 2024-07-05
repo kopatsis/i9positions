@@ -2,16 +2,21 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"i9-pos/datatypes"
+	"log"
+	"slices"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
+	"go.etcd.io/bbolt"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func QueryWO(database *mongo.Database, noMax bool, statics, dynamics []string, exercises [9][]string) (map[string]datatypes.DynamicStr, map[string]datatypes.StaticStr, map[string]datatypes.Exercise, datatypes.TransitionMatrix, error) {
+const bucketName = "CacheBucket"
+
+func QueryWO(database *mongo.Database, boltDB *bbolt.DB, noMax bool, statics, dynamics []string, exercises [9][]string) (map[string]datatypes.DynamicStr, map[string]datatypes.StaticStr, map[string]datatypes.Exercise, datatypes.TransitionMatrix, error) {
 	var wg sync.WaitGroup
 
 	errChan := make(chan error, 4)
@@ -22,7 +27,7 @@ func QueryWO(database *mongo.Database, noMax bool, statics, dynamics []string, e
 	go func() {
 		defer wg.Done()
 		var err error
-		dynamicStr, err = GetDynamics(database, dynamics)
+		dynamicStr, err = GetDynamics(database, boltDB, dynamics)
 		if err != nil {
 			errChan <- err
 		}
@@ -32,7 +37,7 @@ func QueryWO(database *mongo.Database, noMax bool, statics, dynamics []string, e
 	go func() {
 		defer wg.Done()
 		var err error
-		staticStr, err = GetStatics(database, statics)
+		staticStr, err = GetStatics(database, boltDB, statics)
 		if err != nil {
 			errChan <- err
 		}
@@ -42,7 +47,7 @@ func QueryWO(database *mongo.Database, noMax bool, statics, dynamics []string, e
 	go func() {
 		defer wg.Done()
 		var err error
-		exerciseMap, err = GetExercises(database, exercises)
+		exerciseMap, err = GetExercises(database, boltDB, exercises)
 		if err != nil {
 			errChan <- err
 		}
@@ -52,7 +57,7 @@ func QueryWO(database *mongo.Database, noMax bool, statics, dynamics []string, e
 	go func() {
 		defer wg.Done()
 		var err error
-		matrix, err = GetTransitionMatrix(database)
+		matrix, err = GetTransitionMatrix(database, boltDB)
 		if err != nil {
 			errChan <- err
 		}
@@ -83,7 +88,7 @@ func QueryWO(database *mongo.Database, noMax bool, statics, dynamics []string, e
 	return dynamicStr, staticStr, exerciseMap, matrix, nil
 }
 
-func GetExercises(database *mongo.Database, exercises [9][]string) (map[string]datatypes.Exercise, error) {
+func GetExercises(database *mongo.Database, boltDB *bbolt.DB, exercises [9][]string) (map[string]datatypes.Exercise, error) {
 	exerciseMap := map[string]datatypes.Exercise{}
 
 	sumIdList := []string{}
@@ -91,101 +96,101 @@ func GetExercises(database *mongo.Database, exercises [9][]string) (map[string]d
 		sumIdList = append(sumIdList, idlist...)
 	}
 
-	collection := database.Collection("exercise")
-	filter := bson.M{"backendID": bson.M{"$in": UniqueStrSlice(sumIdList)}}
-	cursor, err := collection.Find(context.TODO(), filter)
+	uniqueIDList := UniqueStrSlice(sumIdList)
+
+	var exerciseList []datatypes.Exercise
+
+	err := boltDB.Update(func(tx *bbolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+		if err != nil {
+			return err
+		}
+
+		v := b.Get([]byte("Exercise"))
+		if v != nil {
+			err := json.Unmarshal(v, &exerciseList)
+			if err == nil {
+				return nil
+			}
+			log.Printf("Failed to unmarshal from bbolt: %v, fetching from MongoDB", err)
+		}
+
+		cursor, err := database.Collection("exercise").Find(context.Background(), bson.D{})
+		if err != nil {
+			return err
+		}
+		defer cursor.Close(context.Background())
+
+		if err = cursor.All(context.Background(), &exerciseList); err != nil {
+			return err
+		}
+
+		data, err := json.Marshal(exerciseList)
+		if err != nil {
+			return err
+		}
+
+		err = b.Put([]byte("Exercise"), data)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	for cursor.Next(context.Background()) {
-		var result datatypes.Exercise
-		err := cursor.Decode(&result)
-		if err != nil {
-			return nil, err
+	for _, exer := range exerciseList {
+		if slices.Contains(uniqueIDList, exer.BackendID) {
+			exerciseMap[exer.BackendID] = exer
 		}
-
-		exerciseMap[result.BackendID] = result
 	}
 
 	return exerciseMap, nil
 }
 
-func GetTransitionMatrix(database *mongo.Database) (datatypes.TransitionMatrix, error) {
-	matrix := datatypes.TransitionMatrix{}
+func GetTransitionMatrix(database *mongo.Database, boltDB *bbolt.DB) (datatypes.TransitionMatrix, error) {
 
-	collection := database.Collection("transition")
-	err := collection.FindOne(context.TODO(), bson.M{}).Decode(&matrix)
+	var matrix datatypes.TransitionMatrix
+
+	err := boltDB.Update(func(tx *bbolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+		if err != nil {
+			return err
+		}
+
+		v := b.Get([]byte("Transition"))
+		if v != nil {
+			err := json.Unmarshal(v, &matrix)
+			if err == nil {
+				return nil
+			}
+			log.Printf("Failed to unmarshal from bbolt: %v, fetching from MongoDB", err)
+		}
+
+		err = database.Collection("transition").FindOne(context.Background(), bson.D{}).Decode(&matrix)
+		if err != nil {
+			return err
+		}
+
+		data, err := json.Marshal(matrix)
+		if err != nil {
+			return err
+		}
+
+		err = b.Put([]byte("Transition"), data)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return matrix, err
+		return datatypes.TransitionMatrix{}, err
 	}
 
 	return matrix, nil
-}
-
-func GetImageSetsWO(database *mongo.Database, dynamicStr map[string]datatypes.DynamicStr, staticStr map[string]datatypes.StaticStr, exerciseMap map[string]datatypes.Exercise) (map[string]datatypes.ImageSet, error) {
-	imageSets := map[string]datatypes.ImageSet{}
-
-	allImageSets := []string{}
-
-	for _, dynamic := range dynamicStr {
-		for _, position := range dynamic.PositionSlice1 {
-			allImageSets = append(allImageSets, position.ImageSetID)
-		}
-		if len(dynamic.PositionSlice2) > 0 {
-			for _, position := range dynamic.PositionSlice2 {
-				allImageSets = append(allImageSets, position.ImageSetID)
-			}
-		}
-	}
-
-	for _, exer := range exerciseMap {
-		for _, position := range exer.PositionSlice1 {
-			allImageSets = append(allImageSets, position.ImageSetID)
-		}
-		if len(exer.PositionSlice2) > 0 {
-			for _, position := range exer.PositionSlice2 {
-				allImageSets = append(allImageSets, position.ImageSetID)
-			}
-		}
-	}
-
-	for _, static := range staticStr {
-		allImageSets = append(allImageSets, static.ImageSetID1)
-		if static.ImageSetID2 != "" {
-			allImageSets = append(allImageSets, static.ImageSetID2)
-		}
-	}
-
-	uniqueImageSets := UniqueStrSlice(allImageSets)
-
-	imageSetIDPrims := []primitive.ObjectID{}
-
-	for _, id := range uniqueImageSets {
-		objID, err := primitive.ObjectIDFromHex(id)
-		if err != nil {
-			return nil, err
-		}
-		imageSetIDPrims = append(imageSetIDPrims, objID)
-	}
-
-	collection := database.Collection("imageset")
-
-	filter := bson.M{"_id": bson.M{"$in": imageSetIDPrims}}
-	cursor, err := collection.Find(context.TODO(), filter)
-	if err != nil {
-		return nil, err
-	}
-
-	for cursor.Next(context.Background()) {
-		var result datatypes.ImageSet
-		err := cursor.Decode(&result)
-		if err != nil {
-			return nil, err
-		}
-
-		imageSets[result.ID.Hex()] = result
-	}
-
-	return imageSets, nil
 }

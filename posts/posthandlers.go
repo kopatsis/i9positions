@@ -4,10 +4,11 @@ import (
 	"i9-pos/datatypes"
 
 	"github.com/gin-gonic/gin"
+	"go.etcd.io/bbolt"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func PostStretchWorkout(database *mongo.Database) gin.HandlerFunc {
+func PostStretchWorkout(database *mongo.Database, boltDB *bbolt.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		var strWOBody datatypes.StretchWorkoutRoute
@@ -19,7 +20,7 @@ func PostStretchWorkout(database *mongo.Database) gin.HandlerFunc {
 			return
 		}
 
-		stretchWO, err := StretchWorkout(database, strWOBody)
+		stretchWO, err := StretchWorkout(database, boltDB, strWOBody)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"Error": "Issue with stretch WO creation",
@@ -38,7 +39,7 @@ func PostStretchWorkout(database *mongo.Database) gin.HandlerFunc {
 	}
 }
 
-func PostWorkout(database *mongo.Database) gin.HandlerFunc {
+func PostWorkout(database *mongo.Database, boltDB *bbolt.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		var WOBody datatypes.WorkoutRoute
@@ -50,7 +51,7 @@ func PostWorkout(database *mongo.Database) gin.HandlerFunc {
 			return
 		}
 
-		workout, err := Workout(database, WOBody)
+		workout, err := Workout(database, boltDB, WOBody)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"Error": "Issue with WO creation",

@@ -10,6 +10,7 @@ import (
 	"os"
 
 	firebase "firebase.google.com/go"
+	"go.etcd.io/bbolt"
 	"google.golang.org/api/option"
 
 	"github.com/joho/godotenv"
@@ -45,7 +46,13 @@ func main() {
 		log.Fatalf("error initializing app: %v\n", err)
 	}
 
-	rtr := platform.New(db, firebase)
+	boltDB, err := bbolt.Open("cache.db", 0666, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer boltDB.Close()
+
+	rtr := platform.New(db, firebase, boltDB)
 
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -2,16 +2,19 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"i9-pos/datatypes"
+	"log"
+	"slices"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
+	"go.etcd.io/bbolt"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[string]datatypes.DynamicStr, map[string]datatypes.StaticStr, error) {
+func QueryStretchWO(database *mongo.Database, boltDB *bbolt.DB, statics, dynamics []string) (map[string]datatypes.DynamicStr, map[string]datatypes.StaticStr, error) {
 	var wg sync.WaitGroup
 
 	errChan := make(chan error, 2)
@@ -23,7 +26,7 @@ func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[s
 	go func() {
 		defer wg.Done()
 		var err error
-		dynamicStr, err = GetDynamics(database, dynamics)
+		dynamicStr, err = GetDynamics(database, boltDB, dynamics)
 		if err != nil {
 			errChan <- err
 		}
@@ -33,21 +36,11 @@ func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[s
 	go func() {
 		defer wg.Done()
 		var err error
-		staticStr, err = GetStatics(database, statics)
+		staticStr, err = GetStatics(database, boltDB, statics)
 		if err != nil {
 			errChan <- err
 		}
 	}()
-
-	// wg.Add(1)
-	// go func() {
-	// 	defer wg.Done()
-	// 	var err error
-	// 	imageSets, err = GetAllImageSets(database)
-	// 	if err != nil {
-	// 		errChan <- err
-	// 	}
-	// }()
 
 	wg.Wait()
 	close(errChan)
@@ -64,181 +57,120 @@ func QueryStretchWO(database *mongo.Database, statics, dynamics []string) (map[s
 		return nil, nil, errGroup
 	}
 
-	// imageSets, err := GetImageSets(database, dynamicStr, staticStr)
-	// if err != nil {
-	// 	return nil, nil, nil, err
-	// }
-
 	return dynamicStr, staticStr, nil
 }
 
-func GetDynamics(database *mongo.Database, dynamics []string) (map[string]datatypes.DynamicStr, error) {
+func GetDynamics(database *mongo.Database, boltDB *bbolt.DB, dynamics []string) (map[string]datatypes.DynamicStr, error) {
+
 	dynamicStr := map[string]datatypes.DynamicStr{}
 
-	collection := database.Collection("dynamicstretch")
-	filter := bson.M{"backendID": bson.M{"$in": UniqueStrSlice(dynamics)}}
-	cursor, err := collection.Find(context.TODO(), filter)
+	var dynamicList []datatypes.DynamicStr
+
+	err := boltDB.Update(func(tx *bbolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+		if err != nil {
+			return err
+		}
+
+		v := b.Get([]byte("Dynamic"))
+		if v != nil {
+			err := json.Unmarshal(v, &dynamicList)
+			if err == nil {
+				return nil
+			}
+			log.Printf("Failed to unmarshal from bbolt: %v, fetching from MongoDB", err)
+		}
+
+		cursor, err := database.Collection("dynamicstretch").Find(context.Background(), bson.D{})
+		if err != nil {
+			return err
+		}
+		defer cursor.Close(context.Background())
+
+		if err = cursor.All(context.Background(), &dynamicList); err != nil {
+			return err
+		}
+
+		data, err := json.Marshal(dynamicList)
+		if err != nil {
+			return err
+		}
+
+		err = b.Put([]byte("Dynamic"), data)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	for cursor.Next(context.Background()) {
-		var result datatypes.DynamicStr
-		err := cursor.Decode(&result)
-		if err != nil {
-			return nil, err
+	for _, dynamic := range dynamicList {
+		if slices.Contains(dynamics, dynamic.BackendID) {
+			dynamicStr[dynamic.BackendID] = dynamic
 		}
-
-		dynamicStr[result.BackendID] = result
 	}
 
 	return dynamicStr, nil
 }
 
-func GetStatics(database *mongo.Database, statics []string) (map[string]datatypes.StaticStr, error) {
+func GetStatics(database *mongo.Database, boltDB *bbolt.DB, statics []string) (map[string]datatypes.StaticStr, error) {
 	staticStr := map[string]datatypes.StaticStr{}
 
-	collection := database.Collection("staticstretch")
-	filter := bson.M{"backendID": bson.M{"$in": UniqueStrSlice(statics)}}
-	cursor, err := collection.Find(context.TODO(), filter)
+	var staticList []datatypes.StaticStr
+
+	err := boltDB.Update(func(tx *bbolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+		if err != nil {
+			return err
+		}
+
+		v := b.Get([]byte("Static"))
+		if v != nil {
+			err := json.Unmarshal(v, &staticList)
+			if err == nil {
+				return nil
+			}
+			log.Printf("Failed to unmarshal from bbolt: %v, fetching from MongoDB", err)
+		}
+
+		cursor, err := database.Collection("staticstretch").Find(context.Background(), bson.D{})
+		if err != nil {
+			return err
+		}
+		defer cursor.Close(context.Background())
+
+		if err = cursor.All(context.Background(), &staticList); err != nil {
+			return err
+		}
+
+		data, err := json.Marshal(staticList)
+		if err != nil {
+			return err
+		}
+
+		err = b.Put([]byte("Static"), data)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	for cursor.Next(context.Background()) {
-		var result datatypes.StaticStr
-		err := cursor.Decode(&result)
-		if err != nil {
-			return nil, err
+	for _, static := range staticList {
+		if slices.Contains(statics, static.BackendID) {
+			staticStr[static.BackendID] = static
 		}
-
-		staticStr[result.BackendID] = result
 	}
 
 	return staticStr, nil
-}
-
-func GetImageSets(database *mongo.Database, dynamicStr map[string]datatypes.DynamicStr, staticStr map[string]datatypes.StaticStr) (map[string]datatypes.ImageSet, error) {
-	imageSets := map[string]datatypes.ImageSet{}
-
-	allImageSets := []string{}
-	for _, dynamic := range dynamicStr {
-		for _, position := range dynamic.PositionSlice1 {
-			allImageSets = append(allImageSets, position.ImageSetID)
-		}
-		if len(dynamic.PositionSlice2) > 0 {
-			for _, position := range dynamic.PositionSlice2 {
-				allImageSets = append(allImageSets, position.ImageSetID)
-			}
-		}
-	}
-
-	for _, static := range staticStr {
-		allImageSets = append(allImageSets, static.ImageSetID1)
-		if static.ImageSetID2 != "" {
-			allImageSets = append(allImageSets, static.ImageSetID2)
-		}
-	}
-
-	uniqueImageSets := UniqueStrSlice(allImageSets)
-
-	imageSetIDPrims := []primitive.ObjectID{}
-
-	for _, id := range uniqueImageSets {
-		objID, err := primitive.ObjectIDFromHex(id)
-		if err != nil {
-			return nil, err
-		}
-		imageSetIDPrims = append(imageSetIDPrims, objID)
-	}
-
-	collection := database.Collection("imageset")
-
-	filter := bson.M{"_id": bson.M{"$in": imageSetIDPrims}}
-	cursor, err := collection.Find(context.TODO(), filter)
-	if err != nil {
-		return nil, err
-	}
-
-	for cursor.Next(context.Background()) {
-		var result datatypes.ImageSet
-		err := cursor.Decode(&result)
-		if err != nil {
-			return nil, err
-		}
-
-		imageSets[result.ID.Hex()] = result
-	}
-
-	return imageSets, nil
-}
-
-func GetAllImageSets(database *mongo.Database) (map[string]datatypes.ImageSet, error) {
-
-	imageSets := map[string]datatypes.ImageSet{}
-	collection := database.Collection("imageset")
-
-	cursor, err := collection.Find(context.TODO(), bson.M{})
-	if err != nil {
-		return nil, err
-	}
-
-	for cursor.Next(context.Background()) {
-		var result datatypes.ImageSet
-		err := cursor.Decode(&result)
-		if err != nil {
-			return nil, err
-		}
-
-		imageSets[result.ID.Hex()] = result
-	}
-
-	return imageSets, nil
-}
-
-func GetSamples(database *mongo.Database, dynamicStr map[string]datatypes.DynamicStr, staticStr map[string]datatypes.StaticStr) (map[string]datatypes.Sample, error) {
-	samples := map[string]datatypes.Sample{}
-
-	sampleIDs := []string{}
-	for _, dynamic := range dynamicStr {
-		sampleIDs = append(sampleIDs, dynamic.SampleID)
-	}
-
-	for _, static := range staticStr {
-		sampleIDs = append(sampleIDs, static.SampleID)
-	}
-
-	uniqueSampleIDs := UniqueStrSlice(sampleIDs)
-
-	sampleIDPrims := []primitive.ObjectID{}
-
-	for _, id := range uniqueSampleIDs {
-		objID, err := primitive.ObjectIDFromHex(id)
-		if err != nil {
-			return nil, err
-		}
-		sampleIDPrims = append(sampleIDPrims, objID)
-	}
-
-	collection := database.Collection("sample")
-
-	filter := bson.M{"_id": bson.M{"$in": sampleIDPrims}}
-	cursor, err := collection.Find(context.TODO(), filter)
-	if err != nil {
-		return nil, err
-	}
-
-	for cursor.Next(context.Background()) {
-		var result datatypes.Sample
-		err := cursor.Decode(&result)
-		if err != nil {
-			return nil, err
-		}
-
-		samples[result.ID.Hex()] = result
-	}
-
-	return samples, nil
 }
 
 func UniqueStrSlice(sl []string) []string {

@@ -8,10 +8,11 @@ import (
 
 	firebase "firebase.google.com/go"
 	"github.com/gin-gonic/gin"
+	"go.etcd.io/bbolt"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func New(database *mongo.Database, firebase *firebase.App) *gin.Engine {
+func New(database *mongo.Database, firebase *firebase.App, boltDB *bbolt.DB) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(middleware.CORSMiddleware())
@@ -19,12 +20,12 @@ func New(database *mongo.Database, firebase *firebase.App) *gin.Engine {
 
 	router.GET("/", temp())
 
-	router.GET("/samples", gets.GetSamples(database))
-	router.GET("/samples/:id", gets.GetSampleByID(database))
-	router.GET("/samples/ext/:type/:id", gets.GetSampleByExtID(database))
+	router.GET("/samples", gets.GetSamples(database, boltDB))
+	router.GET("/samples/:id", gets.GetSampleByID(database, boltDB))
+	router.GET("/samples/ext/:type/:id", gets.GetSampleByExtID(database, boltDB))
 
-	router.POST("/workouts/stretch", posts.PostStretchWorkout(database))
-	router.POST("/workouts", posts.PostWorkout(database))
+	router.POST("/workouts/stretch", posts.PostStretchWorkout(database, boltDB))
+	router.POST("/workouts", posts.PostWorkout(database, boltDB))
 
 	return router
 }
